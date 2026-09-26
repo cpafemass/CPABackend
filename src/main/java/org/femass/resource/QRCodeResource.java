@@ -31,9 +31,12 @@ public class QRCodeResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response gerarCodigoParaQRCode(QRCodePayloadDTO payload) {
         try {
-            String codigo = qrCodeService.codificar(payload);
+            if (payload == null) {
+                throw new IllegalArgumentException("Payload do QR Code e obrigatorio");
+            }
+            String codigo = qrCodeService.criarCodigo();
             Validacao validacao = validacaoService.armazenarCodigoValidacao(codigo, payload.aceiteTermosCondicoesServico);
-            return Response.ok(new QRCodeResponseDTO(validacao.getHash(), validacao.getHash())).build();
+            return Response.ok(new QRCodeResponseDTO(codigo, codigo)).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponseDTO(e.getMessage()))
@@ -51,7 +54,7 @@ public class QRCodeResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response decodificarQRCode(String codigo) {
         try {
-            return Response.ok(qrCodeService.decodificar(codigo)).build();
+            return Response.status(Response.Status.GONE).entity(new ErrorResponseDTO("Codigos sao opacos e nao podem ser decodificados")).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponseDTO(e.getMessage()))

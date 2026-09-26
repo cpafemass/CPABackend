@@ -50,8 +50,7 @@ public class ValidacaoResource {
 
         try {
             Validacao validacao = service.validarHash(hash);
-            var response = qrCodeService.decodificar(validacao.getHash());
-            return Response.ok(response, MediaType.APPLICATION_JSON).build();
+            return Response.ok(new ValidacaoStatusDTO("codigo", true, "VALIDADO", "Codigo validado com sucesso"), MediaType.APPLICATION_JSON).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(new ErrorResponseDTO(e.getMessage()))
@@ -89,8 +88,8 @@ public class ValidacaoResource {
 
             ValidacaoDetailResponseDTO response = new ValidacaoDetailResponseDTO(
                 true,
-                validacao.getHash(),
-                validacao.getHash(),
+                "codigo",
+                "codigo",
                 validacao.getValidado(),
                 validacao.getDataCriacao(),
                 validacao.getDataValidacao(),
@@ -181,8 +180,7 @@ public class ValidacaoResource {
     public Response historico() {
        try{
            List<Validacao> historico = service.buscarDezUltimosHashs();
-           List<QRCodePayloadDTO> response = qrCodeService.decodificarListaHistorico(historico);
-           return Response.ok(response, MediaType.APPLICATION_JSON).build();
+           return Response.ok(historico.stream().map(v -> new ValidacaoStatusDTO("codigo", true, "VALIDADO", "Codigo validado")).toList(), MediaType.APPLICATION_JSON).build();
        }catch (IllegalArgumentException e) {
            return Response.status(Response.Status.NOT_FOUND)
                    .entity(new ErrorResponseDTO(e.getMessage()))

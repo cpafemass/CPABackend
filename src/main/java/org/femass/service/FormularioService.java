@@ -44,7 +44,7 @@ public class FormularioService {
     @Transactional
     public Validacao salvarEGerarHash(FormularioDTO formularioDTO) {
         salvarFormulario(formularioDTO);
-        String codigoValidacao = qrCodeService.codificar(qrCodeService.criarPayload(formularioDTO));
+        String codigoValidacao = qrCodeService.codificar(formularioDTO);
         return validacaoService.armazenarCodigoValidacao(
                 codigoValidacao,
                 formularioDTO.respondent.aceiteTermosCondicoesServico

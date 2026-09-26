@@ -5,6 +5,9 @@ import jakarta.transaction.Transactional;
 import org.femass.entity.Validacao;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
 @ApplicationScoped
 public class ValidacaoService {
@@ -20,13 +23,14 @@ public class ValidacaoService {
             throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
         }
 
-        Validacao validacaoExistente = Validacao.find("hash", codigoValidacao).firstResult();
+        String digest = digest(codigoValidacao);
+        Validacao validacaoExistente = Validacao.find("hash", digest).firstResult();
         if (validacaoExistente != null) {
             return validacaoExistente;
         }
 
         Validacao validacao = new Validacao();
-        validacao.setHash(codigoValidacao);
+        validacao.setHash(digest);
         validacao.setValidado(false);
         validacao.setAceiteTermosCondicoesServico(Boolean.TRUE.equals(aceiteTermosCondicoesServico));
         validacao.persist();
@@ -36,7 +40,7 @@ public class ValidacaoService {
 
     @Transactional
     public Validacao validarHash(String hash) {
-        Validacao validacao = Validacao.find("hash", hash).firstResult();
+        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
 
         if (validacao == null) {
             throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
@@ -80,7 +84,7 @@ public class ValidacaoService {
     }
 
     public Boolean verificarStatusValidacao(String hash) {
-        Validacao validacao = Validacao.find("hash", hash).firstResult();
+        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
 
         if (validacao == null) {
             throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
@@ -90,13 +94,18 @@ public class ValidacaoService {
     }
 
     public Validacao buscarHash(String hash) {
-        Validacao validacao = Validacao.find("hash", hash).firstResult();
+        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
 
         if (validacao == null) {
             throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
         }
 
         return validacao;
+    }
+    private String digest(String codigo) {
+        if (codigo == null || codigo.isBlank()) throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
+        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8))); }
+        catch (Exception e) { throw new IllegalStateException("Nao foi possivel processar o codigo"); }
     }
     public List<Validacao> buscarDezUltimosHashs(){
         List<Validacao> lista = Validacao

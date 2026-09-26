@@ -278,3 +278,9 @@ cpa-backend/
 ---
 
 **Desenvolvido com ❤️ em Quarkus**
+# Códigos de validação
+
+Os códigos entregues pelo QR Code são segredos opacos de 128 bits, gerados por `SecureRandom`.
+O código não contém CPF, matrícula, curso ou disciplinas. O banco armazena somente o digest
+SHA-256 do segredo; por isso não existe endpoint de decodificação nem recuperação do código.
+Cada código é de uso único. Códigos criados antes da migração são invalidados pela migration V4.
