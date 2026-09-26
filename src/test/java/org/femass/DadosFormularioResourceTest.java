@@ -4,40 +4,31 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class DadosFormularioResourceTest {
-
     @Test
-    void deveBuscarDadosParaPopularFormulario() {
-        given()
-                .when().get("/dados-formulario")
-                .then()
-                .statusCode(200)
-                .body("cursos", notNullValue())
-                .body("cursos.size()", greaterThan(0))
-                .body("cursos[0].id", notNullValue())
-                .body("cursos[0].nome", notNullValue())
-                .body("cursos[0].disciplinas", notNullValue())
-                .body("perguntas", notNullValue())
-                .body("perguntas.size()", equalTo(10))
-                .body("perguntas[0].id", equalTo("q1"))
-                .body("perguntas[9].id", equalTo("q10"));
+    void deveExigirContextoDoCatalogo() {
+        given().when().get("/dados-formulario").then().statusCode(400);
+        given().when().get("/perguntas").then().statusCode(400);
+        given().when().get("/formularios").then().statusCode(400);
     }
 
     @Test
-    void deveBuscarPerguntasParaPopularFormulario() {
-        given()
+    void deveBuscarCatalogoVersionado() {
+        given().queryParam("campaign", "cpa-2026").queryParam("publico", "aluno")
+                .when().get("/dados-formulario")
+                .then().statusCode(200)
+                .body("cursos", notNullValue())
+                .body("formularios.size()", equalTo(4))
+                .body("formularios.find { it.code == 'discente_disciplinas' }.scope", equalTo("DISCIPLINA"));
+
+        given().queryParam("campaign", "cpa-2026").queryParam("publico", "aluno")
+                .queryParam("form", "discente_disciplinas").queryParam("version", 1)
                 .when().get("/perguntas")
-                .then()
-                .statusCode(200)
+                .then().statusCode(200)
                 .body("size()", equalTo(10))
-                .body("[0].id", equalTo("q1"))
-                .body("[0].texto", equalTo("Promove o debate e instiga o pensamento crítico, colaborando para a autonomia dos estudantes."))
-                .body("[9].id", equalTo("q10"))
-                .body("[9].texto", equalTo("Utiliza diferentes estratégias pedagógicas ou andragógicas que incentivam a aprendizagem e a pesquisa."));
+                .body("[0].options.find { it.naoSeiResponder }.code", equalTo("nao_sei_responder"));
     }
 }

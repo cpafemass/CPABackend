@@ -13,8 +13,12 @@ public class Avaliacao {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "disciplina_id", nullable = false)
+    @JoinColumn(name = "disciplina_id")
     private Disciplina disciplina; // Disciplina avaliada
+
+    @ManyToOne
+    @JoinColumn(name = "formulario_versao_id")
+    private FormularioVersao formularioVersao;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "PUBLICO", nullable = false, length = 20)
@@ -43,6 +47,9 @@ public class Avaliacao {
     public void setDisciplina(Disciplina disciplina) {
         this.disciplina = disciplina;
     }
+
+    public FormularioVersao getFormularioVersao() { return formularioVersao; }
+    public void setFormularioVersao(FormularioVersao formularioVersao) { this.formularioVersao = formularioVersao; }
 
     public PublicoAvaliacao getPublico() {
         return publico;

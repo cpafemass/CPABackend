@@ -9,6 +9,9 @@ public class RespostaRelatorioDTO {
     public String perguntaId;
     public String pergunta;
     public Integer nota;
+    public String opcaoCodigo;
+    public String opcaoRotulo;
+    public boolean naoSeiResponder;
     public String comentario;
 
     public RespostaRelatorioDTO(Long avaliacaoId, String publico, String curso,

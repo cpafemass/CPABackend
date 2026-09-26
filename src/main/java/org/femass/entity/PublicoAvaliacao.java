@@ -6,7 +6,8 @@ import java.util.Locale;
 public enum PublicoAvaliacao {
     ALUNO("aluno"),
     PROFESSOR("professor"),
-    FUNCIONARIO("funcionario");
+    FUNCIONARIO("funcionario"),
+    GESTAO("gestao");
 
     private final String valor;
 
@@ -35,6 +36,6 @@ public enum PublicoAvaliacao {
         }
 
         throw new IllegalArgumentException(
-                "Tipo de respondente invalido. Valores aceitos: aluno, professor ou funcionario");
+                "Tipo de respondente invalido. Valores aceitos: aluno, professor, funcionario ou gestao");
     }
 }

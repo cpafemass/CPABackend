@@ -12,10 +12,11 @@ public class AvaliacaoRepository implements PanacheRepositoryBase<Avaliacao, Lon
 
     public List<Avaliacao> findByPublico(PublicoAvaliacao publico) {
         return find("select distinct a from Avaliacao a "
-                + "join fetch a.disciplina d "
-                + "join fetch d.curso "
+                + "left join fetch a.disciplina d "
+                + "left join fetch d.curso "
                 + "left join fetch a.respostas r "
                 + "left join fetch r.pergunta "
+                + "left join fetch r.perguntaVersao "
                 + "where a.publico = ?1 order by a.id, r.id", publico).list();
     }
 }
