@@ -1,0 +1,47 @@
+{
+  "realm": "cpa",
+  "enabled": true,
+  "displayName": "CPA FeMASS",
+  "roles": {
+    "realm": [
+      { "name": "cpa-admin", "description": "Administra campanhas e versões da CPA" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "cpa-backend",
+      "name": "CPA Backend",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "bearerOnly": true
+    },
+    {
+      "clientId": "cpa-dev-cli",
+      "name": "Cliente de desenvolvimento CPA",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "cpa-admin",
+      "email": "cpa-admin@local.test",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "CPA",
+      "lastName": "Administrator",
+      "requiredActions": [],
+      "credentials": [
+        { "type": "password", "value": "${KEYCLOAK_CPA_ADMIN_PASSWORD}", "temporary": false }
+      ],
+      "realmRoles": [ "cpa-admin" ]
+    }
+  ]
+}

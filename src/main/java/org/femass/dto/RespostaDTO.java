@@ -5,4 +5,5 @@ public class RespostaDTO {
     public String questionText;
     public Integer score;
     public String scoreLabel; // Poderia ser Enum
+    public String optionCode;
 }

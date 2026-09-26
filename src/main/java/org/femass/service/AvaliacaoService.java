@@ -26,16 +26,22 @@ public class AvaliacaoService {
     }
 
     private RespostaRelatorioDTO toDTO(Avaliacao avaliacao, Resposta resposta) {
-        return new RespostaRelatorioDTO(
+        String perguntaId = resposta.getPerguntaVersao() != null ? resposta.getPerguntaVersao().getCodigo() : resposta.getPergunta().getCodigo();
+        String pergunta = resposta.getPerguntaVersao() != null ? resposta.getPerguntaVersao().getTexto() : resposta.getPergunta().getTexto();
+        RespostaRelatorioDTO dto = new RespostaRelatorioDTO(
                 avaliacao.getId(),
                 avaliacao.getPublico().getValor(),
-                avaliacao.getDisciplina().getCurso().getNome(),
-                avaliacao.getDisciplina().getNome(),
-                avaliacao.getDisciplina().getProfessor(),
-                resposta.getPergunta().getCodigo(),
-                resposta.getPergunta().getTexto(),
+                avaliacao.getDisciplina() == null ? null : avaliacao.getDisciplina().getCurso().getNome(),
+                avaliacao.getDisciplina() == null ? null : avaliacao.getDisciplina().getNome(),
+                avaliacao.getDisciplina() == null ? null : avaliacao.getDisciplina().getProfessor(),
+                perguntaId,
+                pergunta,
                 resposta.getNota(),
                 avaliacao.getComentariosGerais()
         );
+        dto.opcaoCodigo = resposta.getOpcaoCodigo();
+        dto.opcaoRotulo = resposta.getOpcaoRotulo();
+        dto.naoSeiResponder = resposta.isNaoSeiResponder();
+        return dto;
     }
 }

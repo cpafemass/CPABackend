@@ -11,16 +11,21 @@ import org.femass.dto.SubjectDTO;
 import org.femass.entity.Avaliacao;
 import org.femass.entity.Curso;
 import org.femass.entity.Disciplina;
-import org.femass.entity.Pergunta;
 import org.femass.entity.PublicoAvaliacao;
 import org.femass.entity.Resposta;
+import org.femass.entity.EscopoFormulario;
 
 import org.femass.entity.Validacao;
 import org.femass.exception.CPFInvalidoException;
 import org.femass.repository.AvaliacaoRepository;
 import org.femass.repository.CursoRepository;
 import org.femass.repository.DisciplinaRepository;
-import org.femass.repository.PerguntaRepository;
+import org.femass.repository.FormularioVersaoRepository;
+import org.femass.repository.PerguntaVersaoRepository;
+import org.femass.repository.OpcaoPerguntaRepository;
+import org.femass.entity.FormularioVersao;
+import org.femass.entity.PerguntaVersao;
+import org.femass.entity.OpcaoPergunta;
 import org.femass.util.ValidacaoCPFUtil;
 
 import java.util.ArrayList;
@@ -35,8 +40,9 @@ public class FormularioService {
     @Inject
     DisciplinaRepository disciplinaRepository;
 
-    @Inject
-    PerguntaRepository perguntaRepository;
+    @Inject FormularioVersaoRepository formularioVersaoRepository;
+    @Inject PerguntaVersaoRepository perguntaVersaoRepository;
+    @Inject OpcaoPerguntaRepository opcaoPerguntaRepository;
 
     @Inject
     AvaliacaoRepository avaliacaoRepository;
@@ -68,80 +74,14 @@ public class FormularioService {
 
     private void salvarFormulario(FormularioDTO formularioDTO) {
         validarFormulario(formularioDTO);
-
-        int avaliacoesSalvas = 0;
-
-        if (formularioDTO == null) {
-            throw new CPFInvalidoException("Formulário não pode ser nulo");
-        }
-        // Validar CPF do respondente (lança CPFInvalidoException em caso de problemas)
         validaCPF(formularioDTO);
-
         PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
-        Curso curso = buscarOuCriarCurso(formularioDTO.course);
-        
-        if (curso == null) {
-            return;
+        FormularioVersao formularioVersao = resolverFormularioVersao(formularioDTO, publico);
+        if (formularioVersao.getEscopo() == EscopoFormulario.DISCIPLINA) {
+            salvarPorDisciplina(formularioDTO, publico, formularioVersao);
+        } else {
+            salvarGeral(formularioDTO, publico, formularioVersao);
         }
-        if (formularioDTO.subjects == null) {
-            return;
-        }
-
-
-        // First pass: resolve all disciplinas. If any subject references a
-        // disciplina that does not exist in the domain table, abort and return
-        // a clear error (we don't want partial persistence).
-        List<String> missing = new ArrayList<>();
-        List<Disciplina> disciplinas = new ArrayList<>();
-        for (SubjectDTO subjectDTO : formularioDTO.subjects) {
-            validarSubject(subjectDTO);
-
-            Disciplina disciplina = buscarOuCriarDisciplina(subjectDTO, curso);
-
-            if (disciplina == null) {
-                String idOrName = subjectDTO.subjectId != null ? subjectDTO.subjectId : subjectDTO.subjectName;
-                missing.add(idOrName == null ? "(sem identificador)" : idOrName);
-            }
-            disciplinas.add(disciplina);
-        }
-
-        if (!missing.isEmpty()) {
-            // Throw a domain-level exception so the resource can return 400.
-            throw new org.femass.exception.InvalidFormularioException("Uma ou mais disciplinas informadas nao foram encontradas");
-        }
-
-        // Second pass: now that all disciplinas are resolved, create e persistir avaliações
-        for (int i = 0; i < formularioDTO.subjects.size(); i++) {
-            SubjectDTO subjectDTO = formularioDTO.subjects.get(i);
-            Disciplina disciplina = disciplinas.get(i);
-
-
-            Avaliacao avaliacao = new Avaliacao();
-            avaliacao.setDisciplina(disciplina);
-            avaliacao.setPublico(publico);
-            avaliacao.setComentariosGerais(subjectDTO.comment);
-
-            List<Resposta> respostas = new ArrayList<>();
-            for (RespostaDTO respostaDTO : subjectDTO.answers) {
-                validarResposta(respostaDTO);
-
-                Pergunta pergunta = buscarOuCriarPergunta(respostaDTO);
-                Resposta resposta = new Resposta();
-                resposta.setAvaliacao(avaliacao);
-                resposta.setPergunta(pergunta);
-                resposta.setNota(respostaDTO.score);
-                respostas.add(resposta);
-            }
-
-            avaliacao.setRespostas(respostas);
-            avaliacaoRepository.persist(avaliacao);
-            avaliacoesSalvas++;
-        }
-
-        if (avaliacoesSalvas == 0) {
-            throw new IllegalArgumentException("Nenhuma avaliacao valida foi informada");
-        }
-
         avaliacaoRepository.flush();
     }
 
@@ -150,13 +90,8 @@ public class FormularioService {
             throw new IllegalArgumentException("Formulario nao pode ser vazio");
         }
 
-        if (formularioDTO.course == null) {
-            throw new IllegalArgumentException("Curso e obrigatorio");
-        }
-
-        if (formularioDTO.course.name == null || formularioDTO.course.name.isBlank()) {
-            throw new IllegalArgumentException("Nome do curso e obrigatorio");
-        }
+        if (formularioDTO.campaign == null || formularioDTO.campaign.isBlank() || formularioDTO.form == null || formularioDTO.form.isBlank() || formularioDTO.formVersion == null)
+            throw new IllegalArgumentException("Campanha, formulario e versao sao obrigatorios");
 
         if (formularioDTO.respondent == null) {
             throw new IllegalArgumentException("Dados do respondente sao obrigatorios");
@@ -178,9 +113,6 @@ public class FormularioService {
             throw new IllegalArgumentException("Aceite dos termos e condicoes de servico e obrigatorio");
         }
 
-        if (formularioDTO.subjects == null || formularioDTO.subjects.isEmpty()) {
-            throw new IllegalArgumentException("Ao menos uma disciplina deve ser informada");
-        }
     }
 
     private void validarSubject(SubjectDTO subjectDTO) {
@@ -188,13 +120,8 @@ public class FormularioService {
             throw new IllegalArgumentException("Disciplina nao pode ser vazia");
         }
 
-        if (subjectDTO.subjectName == null || subjectDTO.subjectName.isBlank()) {
-            throw new IllegalArgumentException("Nome da disciplina e obrigatorio");
-        }
-
-        if (subjectDTO.teacherName == null || subjectDTO.teacherName.isBlank()) {
-            throw new IllegalArgumentException("Nome do professor e obrigatorio");
-        }
+        if (subjectDTO.subjectId == null || subjectDTO.subjectId.isBlank())
+            throw new IllegalArgumentException("Identificador da disciplina e obrigatorio");
 
         if (subjectDTO.answers == null || subjectDTO.answers.isEmpty()) {
             throw new IllegalArgumentException("Ao menos uma resposta deve ser informada");
@@ -206,17 +133,40 @@ public class FormularioService {
             throw new IllegalArgumentException("Resposta nao pode ser vazia");
         }
 
-        if (respostaDTO.questionText == null || respostaDTO.questionText.isBlank()) {
-            throw new IllegalArgumentException("Texto da pergunta e obrigatorio");
-        }
+        if (respostaDTO.questionId == null || respostaDTO.questionId.isBlank())
+            throw new IllegalArgumentException("Identificador da pergunta e obrigatorio");
+        if (respostaDTO.optionCode == null || respostaDTO.optionCode.isBlank())
+            throw new IllegalArgumentException("Codigo da opcao e obrigatorio");
+    }
 
-        if (respostaDTO.score == null) {
-            throw new IllegalArgumentException("Nota da resposta e obrigatoria");
-        }
+    private FormularioVersao resolverFormularioVersao(FormularioDTO dto, PublicoAvaliacao publico) {
+        FormularioVersao versao = formularioVersaoRepository.findPublicada(dto.campaign, dto.form, publico, dto.formVersion);
+        if (versao == null) throw new IllegalArgumentException("Formulario publicado nao encontrado para campanha aberta e publico informado");
+        return versao;
+    }
 
-        if (respostaDTO.score < 1 || respostaDTO.score > 5) {
-            throw new IllegalArgumentException("Nota da resposta deve estar entre 1 e 5");
-        }
+    private void preencherRespostaVersionada(Resposta resposta, RespostaDTO dto, FormularioVersao versao) {
+        String codigo = dto.questionId;
+        PerguntaVersao pergunta = perguntaVersaoRepository.findByVersionAndCode(versao.getId(), codigo);
+        if (pergunta == null) throw new IllegalArgumentException("Pergunta nao pertence ao formulario informado");
+        if (dto.questionText != null && !dto.questionText.isBlank() && !dto.questionText.equals(pergunta.getTexto()))
+            throw new IllegalArgumentException("Texto da pergunta nao corresponde a versao informada");
+        OpcaoPergunta opcao = opcaoPerguntaRepository.findByQuestionAndCode(pergunta.getId(), dto.optionCode);
+        if (opcao == null) throw new IllegalArgumentException("Opcao de resposta invalida para a pergunta informada");
+        resposta.setPerguntaVersao(pergunta);
+        resposta.setOpcaoCodigo(opcao.getCodigo());
+        resposta.setOpcaoRotulo(opcao.getRotulo());
+        resposta.setNaoSeiResponder(opcao.isNaoSeiResponder());
+        resposta.setNota(opcao.getValor());
+    }
+
+    private String sanitizarComentario(String comentario, FormularioVersao versao) {
+        if (comentario == null || comentario.isBlank()) return null;
+        if (!versao.isComentarioPermitido())
+            throw new IllegalArgumentException("Comentarios nao sao permitidos neste formulario");
+        String limpo = comentario.replaceAll("<[^>]*>", "").trim();
+        if (limpo.length() > 1000) throw new IllegalArgumentException("Comentario deve ter no maximo 1000 caracteres");
+        return limpo;
     }
      private void validaCPF(FormularioDTO formularioDTO) {
         // Validar CPF do respondente
@@ -233,70 +183,46 @@ public class FormularioService {
          }
      }
 
-    private Curso buscarOuCriarCurso(CursoDTO cursoDTO) {
-        Curso curso = cursoRepository.findByNome(cursoDTO.name);
-
-        if (curso == null) {
-            curso = new Curso();
-            curso.setNome(cursoDTO.name);
-            cursoRepository.persist(curso);
+    private void salvarPorDisciplina(FormularioDTO dto, PublicoAvaliacao publico, FormularioVersao versao) {
+        if (dto.course == null || dto.course.name == null || dto.course.name.isBlank())
+            throw new IllegalArgumentException("Curso e obrigatorio para este formulario");
+        if (dto.subjects == null || dto.subjects.isEmpty())
+            throw new IllegalArgumentException("Ao menos uma disciplina deve ser informada");
+        Curso curso = cursoRepository.findByNome(dto.course.name);
+        if (curso == null) throw new IllegalArgumentException("Curso informado nao existe");
+        for (SubjectDTO subject : dto.subjects) {
+            validarSubject(subject);
+            Disciplina disciplina;
+            try { disciplina = disciplinaRepository.findByIdAndCurso(Long.parseLong(subject.subjectId), curso.getId()); }
+            catch (NumberFormatException e) { throw new IllegalArgumentException("Identificador da disciplina invalido"); }
+            if (disciplina == null) throw new IllegalArgumentException("Disciplina informada nao existe para o curso");
+            persistirAvaliacao(publico, versao, disciplina, subject.answers, subject.comment);
         }
-
-        return curso;
     }
 
-    private Disciplina buscarOuCriarDisciplina(SubjectDTO subjectDTO, Curso curso) {
-        if (subjectDTO == null || curso == null) {
-            return null;
-        }
-
-        if (subjectDTO.subjectName == null || subjectDTO.subjectName.isBlank()) {
-            return null;
-        }
-
-        if (subjectDTO.teacherName == null || subjectDTO.teacherName.isBlank()) {
-            return null;
-        }
-
-        // Prefer lookup by subjectId when provided. If subjectId is numeric, try to
-        // find by primary key. If not numeric or not found, fall back to name+professor lookup.
-        Disciplina disciplina = null;
-
-        if (subjectDTO.subjectId != null && !subjectDTO.subjectId.isBlank()) {
-            try {
-                Long did = Long.parseLong(subjectDTO.subjectId);
-                disciplina = disciplinaRepository.findByIdAndCurso(did, curso.getId());
-            } catch (NumberFormatException nfe) {
-                // subjectId is not a number; fallthrough to name search below
-            }
-        }
-
-        if (disciplina == null && subjectDTO.teacherName != null && !subjectDTO.teacherName.isBlank()) {
-            disciplina = disciplinaRepository.findByIdValue(subjectDTO.subjectId);
-        }
-
-        // If not found, return null so the caller will skip this subject.
-        return disciplina;
+    private void salvarGeral(FormularioDTO dto, PublicoAvaliacao publico, FormularioVersao versao) {
+        if (dto.answers == null || dto.answers.isEmpty())
+            throw new IllegalArgumentException("Ao menos uma resposta deve ser informada");
+        persistirAvaliacao(publico, versao, null, dto.answers, dto.comment);
     }
 
-    private Pergunta buscarOuCriarPergunta(RespostaDTO respostaDTO) {
-        Pergunta pergunta = null;
-
-        if (respostaDTO.questionId != null && !respostaDTO.questionId.isBlank()) {
-            pergunta = perguntaRepository.findByCodigo(respostaDTO.questionId);
+    private void persistirAvaliacao(PublicoAvaliacao publico, FormularioVersao versao, Disciplina disciplina,
+                                    List<RespostaDTO> respostasDto, String comentario) {
+        Avaliacao avaliacao = new Avaliacao();
+        avaliacao.setDisciplina(disciplina);
+        avaliacao.setPublico(publico);
+        avaliacao.setFormularioVersao(versao);
+        avaliacao.setComentariosGerais(sanitizarComentario(comentario, versao));
+        List<Resposta> respostas = new ArrayList<>();
+        for (RespostaDTO dto : respostasDto) {
+            validarResposta(dto);
+            Resposta resposta = new Resposta();
+            resposta.setAvaliacao(avaliacao);
+            preencherRespostaVersionada(resposta, dto, versao);
+            respostas.add(resposta);
         }
-
-        if (pergunta == null) {
-            pergunta = perguntaRepository.findByTexto(respostaDTO.questionText);
-        }
-
-        if (pergunta == null) {
-            pergunta = new Pergunta();
-            pergunta.setTexto(respostaDTO.questionText);
-            perguntaRepository.persist(pergunta);
-        }
-
-        return pergunta;
+        avaliacao.setRespostas(respostas);
+        avaliacaoRepository.persist(avaliacao);
     }
 
     private String primeirosQuatroDigitosCpf(String cpf) {

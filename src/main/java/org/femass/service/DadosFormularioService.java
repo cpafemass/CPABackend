@@ -30,6 +30,9 @@ public class DadosFormularioService {
     @Inject
     PerguntaRepository perguntaRepository;
 
+    @Inject
+    FormularioCatalogoService catalogoService;
+
     public DadosFormularioDTO buscarDadosFormulario() {
         Map<Long, CursoFormularioDTO> cursos = buscarCursos();
         preencherDisciplinas(cursos);
@@ -38,6 +41,12 @@ public class DadosFormularioService {
                 List.copyOf(cursos.values()),
                 buscarPerguntas()
         );
+    }
+
+    public DadosFormularioDTO buscarDadosFormulario(String campanha, org.femass.entity.PublicoAvaliacao publico) {
+        Map<Long, CursoFormularioDTO> cursos = buscarCursos();
+        preencherDisciplinas(cursos);
+        return new DadosFormularioDTO(List.copyOf(cursos.values()), catalogoService.buscar(campanha, publico), true);
     }
 
     private Map<Long, CursoFormularioDTO> buscarCursos() {
