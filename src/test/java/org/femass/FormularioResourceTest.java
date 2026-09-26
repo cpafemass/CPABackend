@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import io.restassured.path.json.JsonPath;
 import org.femass.repository.CursoRepository;
+import org.femass.repository.AvaliacaoRepository;
 import org.junit.jupiter.api.Test;
 
 
@@ -19,6 +20,9 @@ class FormularioResourceTest {
 
     @Inject
     CursoRepository cursoRepository;
+
+    @Inject
+    AvaliacaoRepository avaliacaoRepository;
 
     @Test
     void deveSalvarFormularioERetornarHash() {
@@ -200,5 +204,106 @@ class FormularioResourceTest {
                 .then().statusCode(400);
 
         assertNull(cursoRepository.findByNome(curso));
+    }
+
+    @Test
+    void devePersistirPublicoProfessorSemPersistirIdentidade() {
+        String formulario = """
+                {
+                  "respondent": {
+                    "type": "professor",
+                    "cpf": "529.982.247-25",
+                    "matricula": "professor-2026",
+                    "aceiteTermosCondicoesServico": true
+                  },
+                  "course": {"name": "Administração"},
+                  "subjects": [{
+                    "subjectId": "1",
+                    "subjectName": "Noções Básicas de Administração",
+                    "teacherName": "Professor Teste",
+                    "answers": [{"questionText": "Pergunta publico?", "score": 4}]
+                  }]
+                }
+                """;
+
+        given()
+                .contentType("application/json")
+                .body(formulario)
+                .when().post("/formulario")
+                .then().statusCode(200);
+
+        org.femass.entity.Avaliacao avaliacao = avaliacaoRepository
+                .find("publico", org.femass.entity.PublicoAvaliacao.PROFESSOR)
+                .list().stream()
+                .filter(item -> item.getComentariosGerais() == null)
+                .findFirst()
+                .orElseThrow();
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.femass.entity.PublicoAvaliacao.PROFESSOR, avaliacao.getPublico());
+    }
+
+    @Test
+    void deveRejeitarPublicoDesconhecido() {
+        String formulario = """
+                {
+                  "respondent": {
+                    "type": "egresso",
+                    "cpf": "529.982.247-25",
+                    "matricula": "egresso-2026",
+                    "aceiteTermosCondicoesServico": true
+                  },
+                  "course": {"name": "Administração"},
+                  "subjects": [{
+                    "subjectId": "1",
+                    "subjectName": "Noções Básicas de Administração",
+                    "teacherName": "Professor Teste",
+                    "answers": [{"questionText": "Pergunta invalida?", "score": 4}]
+                  }]
+                }
+                """;
+
+        given()
+                .contentType("application/json")
+                .body(formulario)
+                .when().post("/formulario")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void deveConsultarRespostasFiltradasPorPublico() {
+        String formulario = """
+                {
+                  "respondent": {
+                    "type": "funcionário",
+                    "cpf": "529.982.247-25",
+                    "matricula": "funcionario-2026",
+                    "aceiteTermosCondicoesServico": true
+                  },
+                  "course": {"name": "Administração"},
+                  "subjects": [{
+                    "subjectId": "1",
+                    "subjectName": "Noções Básicas de Administração",
+                    "teacherName": "Professor Teste",
+                    "answers": [{"questionText": "Pergunta relatorio?", "score": 3}]
+                  }]
+                }
+                """;
+
+        given()
+                .contentType("application/json")
+                .body(formulario)
+                .when().post("/formulario")
+                .then().statusCode(200);
+
+        given()
+                .when().get("/avaliacoes?publico=funcionario")
+                .then()
+                .statusCode(200)
+                .body("find { it.pergunta == 'Pergunta relatorio?' }.publico", equalTo("funcionario"))
+                .body("find { it.pergunta == 'Pergunta relatorio?' }.nota", equalTo(3))
+                .body("find { it.pergunta == 'Pergunta relatorio?' }.cpf", org.hamcrest.Matchers.nullValue())
+                .body("find { it.pergunta == 'Pergunta relatorio?' }.matricula", org.hamcrest.Matchers.nullValue())
+                .body("find { it.pergunta == 'Pergunta relatorio?' }.email", org.hamcrest.Matchers.nullValue());
     }
 }

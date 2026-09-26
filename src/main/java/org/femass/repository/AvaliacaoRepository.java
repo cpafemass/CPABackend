@@ -3,7 +3,19 @@ package org.femass.repository;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.femass.entity.Avaliacao;
+import org.femass.entity.PublicoAvaliacao;
+
+import java.util.List;
 
 @ApplicationScoped
 public class AvaliacaoRepository implements PanacheRepositoryBase<Avaliacao, Long> {
+
+    public List<Avaliacao> findByPublico(PublicoAvaliacao publico) {
+        return find("select distinct a from Avaliacao a "
+                + "join fetch a.disciplina d "
+                + "join fetch d.curso "
+                + "left join fetch a.respostas r "
+                + "left join fetch r.pergunta "
+                + "where a.publico = ?1 order by a.id, r.id", publico).list();
+    }
 }
