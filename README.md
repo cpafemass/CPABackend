@@ -295,3 +295,14 @@ Os códigos entregues pelo QR Code são segredos opacos de 128 bits, gerados por
 O código não contém CPF, matrícula, curso ou disciplinas. O banco armazena somente o digest
 SHA-256 do segredo; por isso não existe endpoint de decodificação nem recuperação do código.
 Cada código é de uso único. Códigos criados antes da migração são invalidados pela migration V4.
+
+### Migração da chave primária de `VALIDACAO`
+
+A migration V6 adiciona `ID` como chave primária técnica identity e mantém
+`CODIGO_DIGEST` como chave de negócio com índice `UNIQUE`. Ela é compatível com
+bancos que já executaram V1–V5 e não deve ser editada após aplicada.
+
+Em caso de rollback, faça backup e confirme que não existem FKs dependentes;
+depois aplique uma migration corretiva que remova a PK técnica e restaure
+temporariamente a PK em `CODIGO_DIGEST`. O tratamento de códigos legados
+continua sendo responsabilidade da migration V4, conforme a issue #2.

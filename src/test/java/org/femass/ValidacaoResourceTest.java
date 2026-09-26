@@ -14,6 +14,8 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 class ValidacaoResourceTest {
@@ -26,6 +28,23 @@ class ValidacaoResourceTest {
           .then()
              .statusCode(400)
              .body("error", is("Codigo de validacao e obrigatorio"));
+    }
+
+    @Test
+    @Transactional
+    void deveUsarIdTecnicoEManterDigestUnico() throws Exception {
+        String codigo = "codigo-tecnico-" + UUID.randomUUID();
+        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+
+        Validacao primeira = validacaoService.armazenarCodigoValidacao(codigo, true);
+        Validacao segunda = validacaoService.armazenarCodigoValidacao(codigo, true);
+
+        assertNotNull(primeira.getId());
+        assertEquals(primeira.getId(), segunda.getId());
+        assertEquals(64, primeira.getCodigoDigest().length());
+        assertEquals(digest, primeira.getCodigoDigest());
+        assertEquals(1L, Validacao.count("codigoDigest", digest));
     }
     @Test
     void deveValidarCodigoOpacoSemRetornarDadosPessoais() {
