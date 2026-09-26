@@ -1,16 +1,25 @@
 package org.femass.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.femass.entity.Validacao;
 
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class ValidacaoService {
+
+    @Inject
+    @ConfigProperty(name = "validacao.codigo-expiracao", defaultValue = "PT336H")
+    Duration codigoExpiracao;
 
     @Transactional
     public Validacao armazenarCodigoValidacao(String codigoValidacao) {
@@ -23,15 +32,16 @@ public class ValidacaoService {
             throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
         }
 
-        String digest = digest(codigoValidacao);
-        Validacao validacaoExistente = Validacao.find("hash", digest).firstResult();
+        String digest = calcularDigest(codigoValidacao);
+        Validacao validacaoExistente = Validacao.find("codigoDigest", digest).firstResult();
         if (validacaoExistente != null) {
             return validacaoExistente;
         }
 
         Validacao validacao = new Validacao();
-        validacao.setHash(digest);
+        validacao.setCodigoDigest(digest);
         validacao.setValidado(false);
+        validacao.setExpiraEm(LocalDateTime.now().plus(codigoExpiracao));
         validacao.setAceiteTermosCondicoesServico(Boolean.TRUE.equals(aceiteTermosCondicoesServico));
         validacao.persist();
 
@@ -39,15 +49,19 @@ public class ValidacaoService {
     }
 
     @Transactional
-    public Validacao validarHash(String hash) {
-        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
+    public Validacao validarCodigo(String codigoValidacao) {
+        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao))
+                .withLock(LockModeType.PESSIMISTIC_WRITE).firstResult();
 
         if (validacao == null) {
-            throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
+            throw new IllegalArgumentException("Codigo nao encontrado");
         }
 
         if (Boolean.TRUE.equals(validacao.getValidado())) {
             throw new IllegalStateException("Codigo ja foi validado e nao pode ser reutilizado");
+        }
+        if (validacao.getExpiraEm() != null && validacao.getExpiraEm().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Codigo expirado");
         }
 
         if (validacao.getTentativasValidacao() == null) {
@@ -60,8 +74,8 @@ public class ValidacaoService {
         return validacao;
     }
 
-    public java.util.Map<String, Object> validarHashComDetalhes(String hash) {
-        Validacao validacao = validarHash(hash);
+    public java.util.Map<String, Object> validarCodigoComDetalhes(String codigoValidacao) {
+        Validacao validacao = validarCodigo(codigoValidacao);
 
         long tempoDecorridoMs = 0;
         if (validacao.getDataCriacao() != null && validacao.getDataValidacao() != null) {
@@ -72,8 +86,7 @@ public class ValidacaoService {
         }
 
         java.util.Map<String, Object> detalhes = new java.util.HashMap<>();
-        detalhes.put("hashValido", true);
-        detalhes.put("hash", validacao.getHash());
+        detalhes.put("codigoValido", true);
         detalhes.put("validado", validacao.getValidado());
         detalhes.put("dataCriacao", validacao.getDataCriacao());
         detalhes.put("dataValidacao", validacao.getDataValidacao());
@@ -83,31 +96,31 @@ public class ValidacaoService {
         return detalhes;
     }
 
-    public Boolean verificarStatusValidacao(String hash) {
-        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
+    public Boolean verificarStatusValidacao(String codigoValidacao) {
+        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao)).firstResult();
 
         if (validacao == null) {
-            throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
+            throw new IllegalArgumentException("Codigo nao encontrado");
         }
 
         return validacao.getValidado();
     }
 
-    public Validacao buscarHash(String hash) {
-        Validacao validacao = Validacao.find("hash", digest(hash)).firstResult();
+    public Validacao buscarCodigo(String codigoValidacao) {
+        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao)).firstResult();
 
         if (validacao == null) {
-            throw new IllegalArgumentException("Hash nao encontrado no banco de dados");
+            throw new IllegalArgumentException("Codigo nao encontrado");
         }
 
         return validacao;
     }
-    private String digest(String codigo) {
+    private String calcularDigest(String codigo) {
         if (codigo == null || codigo.isBlank()) throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8))); }
         catch (Exception e) { throw new IllegalStateException("Nao foi possivel processar o codigo"); }
     }
-    public List<Validacao> buscarDezUltimosHashs(){
+    public List<Validacao> buscarDezUltimosCodigosValidados(){
         List<Validacao> lista = Validacao
                 .find("""
                     validado = true

@@ -34,6 +34,9 @@ public class QRCodeResource {
             if (payload == null) {
                 throw new IllegalArgumentException("Payload do QR Code e obrigatorio");
             }
+            if (!Boolean.TRUE.equals(payload.aceiteTermosCondicoesServico)) {
+                throw new IllegalArgumentException("Aceite dos termos e condicoes de servico e obrigatorio");
+            }
             String codigo = qrCodeService.criarCodigo();
             Validacao validacao = validacaoService.armazenarCodigoValidacao(codigo, payload.aceiteTermosCondicoesServico);
             return Response.ok(new QRCodeResponseDTO(codigo, codigo)).build();

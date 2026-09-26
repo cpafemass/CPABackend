@@ -22,6 +22,4 @@ public class QRCodeService {
     public String codificar(FormularioDTO formularioDTO) {
         return criarCodigo();
     }
-    public String codificar(Object ignorado) { return criarCodigo(); }
-
 }

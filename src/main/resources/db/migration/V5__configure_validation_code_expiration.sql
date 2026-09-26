@@ -1,0 +1,19 @@
+-- Compatibilidade com bancos que já executaram a primeira versão da V4.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'validacao' AND column_name = 'hash'
+    ) THEN
+        ALTER TABLE VALIDACAO DROP CONSTRAINT IF EXISTS VALIDACAO_pkey;
+        ALTER TABLE VALIDACAO RENAME COLUMN HASH TO CODIGO_DIGEST;
+        ALTER TABLE VALIDACAO ALTER COLUMN CODIGO_DIGEST TYPE varchar(64);
+        ALTER TABLE VALIDACAO ADD PRIMARY KEY (CODIGO_DIGEST);
+    END IF;
+END $$;
+
+ALTER TABLE VALIDACAO ADD COLUMN IF NOT EXISTS EXPIRA_EM timestamp(6);
+UPDATE VALIDACAO
+SET EXPIRA_EM = coalesce(DATA_CRIACAO, current_timestamp) + interval '14 days'
+WHERE EXPIRA_EM IS NULL;
+ALTER TABLE VALIDACAO ALTER COLUMN EXPIRA_EM SET NOT NULL;

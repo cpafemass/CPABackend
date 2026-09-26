@@ -4,8 +4,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -22,16 +20,17 @@ class FormularioResourceTest {
                   "schemaVersion": "1",
                   "confirmationCode": "confirmacao-teste",
                   "respondent": {
-                    "cpf": "123.456.789-00",
+                    "cpf": "529.982.247-25",
                     "matricula": "20260001",
                     "aceiteTermosCondicoesServico": true
                   },
                   "course": {
-                    "name": "Curso Teste Formulario"
+                    "name": "Administração"
                   },
                   "subjects": [
                     {
-                      "subjectName": "Disciplina Teste Formulario",
+                      "subjectName": "Noções Básicas de Administração",
+                      "subjectId": "1",
                       "teacherName": "Professor Teste",
                       "answers": [
                         {
@@ -60,22 +59,23 @@ class FormularioResourceTest {
     }
 
     @Test
-    void deveRetornarQRCodeDecodificavelComDadosDoRespondenteEDisciplinas() {
+    void deveRetornarQRCodeOpacoSemDadosPessoais() {
         String formulario = """
                 {
                   "schemaVersion": "1",
                   "confirmationCode": "confirmacao-teste-decodificacao",
                   "respondent": {
-                    "cpf": "987.654.321-00",
+                    "cpf": "529.982.247-25",
                     "matricula": "20260002",
                     "aceiteTermosCondicoesServico": true
                   },
                   "course": {
-                    "name": "Curso Teste QR"
+                    "name": "Administração"
                   },
                   "subjects": [
                     {
-                      "subjectName": "Álgebra Linear",
+                      "subjectName": "Noções Básicas de Administração",
+                      "subjectId": "1",
                       "teacherName": "Professor Teste",
                       "answers": [
                         {
@@ -85,7 +85,8 @@ class FormularioResourceTest {
                       ]
                     },
                     {
-                      "subjectName": "Sistemas Operacionais",
+                      "subjectName": "Filosofia e Ética",
+                      "subjectId": "2",
                       "teacherName": "Professor Teste",
                       "answers": [
                         {
@@ -109,16 +110,9 @@ class FormularioResourceTest {
                 .extract()
                 .path("qrCode");
 
-        String payload = new String(Base64.getUrlDecoder().decode(qrCode), StandardCharsets.UTF_8);
-
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"cpf\":\"9876\""));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"matricula\":\"20260002\""));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"aceiteTermosCondicoesServico\":true"));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"cursos\":[\"Curso Teste QR\"]"));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"ALG\""));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"SIS\""));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.containsString("\"identificador\":"));
-        org.hamcrest.MatcherAssert.assertThat(payload, org.hamcrest.Matchers.matchesPattern(".*\"identificador\":\"[a-f0-9-]{36}\"\\}$"));
+        org.hamcrest.MatcherAssert.assertThat(qrCode, org.hamcrest.Matchers.matchesPattern("[A-Za-z0-9_-]{22}"));
+        org.hamcrest.MatcherAssert.assertThat(qrCode, org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("9876")));
+        org.hamcrest.MatcherAssert.assertThat(qrCode, org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("20260002")));
     }
 
     @Test
@@ -128,16 +122,17 @@ class FormularioResourceTest {
                   "schemaVersion": "1",
                   "confirmationCode": "confirmacao-teste-unico",
                   "respondent": {
-                    "cpf": "111.222.333-44",
+                    "cpf": "529.982.247-25",
                     "matricula": "20260003",
                     "aceiteTermosCondicoesServico": true
                   },
                   "course": {
-                    "name": "Curso Teste Codigo Unico"
+                    "name": "Administração"
                   },
                   "subjects": [
                     {
-                      "subjectName": "Calculo Numerico",
+                      "subjectName": "Matemática I",
+                      "subjectId": "3",
                       "teacherName": "Professor Teste",
                       "answers": [
                         {

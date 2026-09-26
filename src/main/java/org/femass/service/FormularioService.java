@@ -45,10 +45,12 @@ public class FormularioService {
     public Validacao salvarEGerarHash(FormularioDTO formularioDTO) {
         salvarFormulario(formularioDTO);
         String codigoValidacao = qrCodeService.codificar(formularioDTO);
-        return validacaoService.armazenarCodigoValidacao(
+        Validacao validacao = validacaoService.armazenarCodigoValidacao(
                 codigoValidacao,
                 formularioDTO.respondent.aceiteTermosCondicoesServico
         );
+        validacao.setCodigoValidacao(codigoValidacao);
+        return validacao;
     }
 
     private void salvarFormulario(FormularioDTO formularioDTO) {
@@ -91,7 +93,7 @@ public class FormularioService {
 
         if (!missing.isEmpty()) {
             // Throw a domain-level exception so the resource can return 400.
-            throw new org.femass.exception.InvalidFormularioException("Disciplinas não encontradas: " + String.join(", ", missing));
+            throw new org.femass.exception.InvalidFormularioException("Uma ou mais disciplinas informadas nao foram encontradas");
         }
 
         // Second pass: now that all disciplinas are resolved, create e persistir avaliações
@@ -212,7 +214,7 @@ public class FormularioService {
          }
 
          if (!ValidacaoCPFUtil.validarCPF(formularioDTO.respondent.cpf)) {
-             throw new CPFInvalidoException("CPF inválido: " + formularioDTO.respondent.cpf);
+             throw new CPFInvalidoException("CPF invalido");
          }
      }
 
