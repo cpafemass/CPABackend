@@ -111,6 +111,10 @@ PUT /validacao/validar-hash/detalhado?hash=SEU_HASH
 
 ## 🛠️ Desenvolvimento
 
+### Convenção de acesso a dados
+
+Os repositories em `src/main/java/org/femass/repository` são responsáveis por consultas e operações de persistência usando Panache. Os services mantêm as validações, regras de negócio e a orquestração dos casos de uso, além de definir os limites transacionais com `@Transactional`. Novas entidades devem seguir essa separação: consultas específicas ficam no repository correspondente e não devem ser executadas diretamente pelos services.
+
 ### Modo Dev com Live Reload
 ```bash
 ./mvnw quarkus:dev

@@ -2,7 +2,6 @@ package org.femass.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import org.femass.dto.CursoFormularioDTO;
 import org.femass.dto.DadosFormularioDTO;
 import org.femass.dto.DisciplinaFormularioDTO;
@@ -10,6 +9,9 @@ import org.femass.dto.PerguntaFormularioDTO;
 import org.femass.entity.Curso;
 import org.femass.entity.Disciplina;
 import org.femass.entity.Pergunta;
+import org.femass.repository.CursoRepository;
+import org.femass.repository.DisciplinaRepository;
+import org.femass.repository.PerguntaRepository;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -20,7 +22,13 @@ import java.util.Map;
 public class DadosFormularioService {
 
     @Inject
-    EntityManager entityManager;
+    CursoRepository cursoRepository;
+
+    @Inject
+    DisciplinaRepository disciplinaRepository;
+
+    @Inject
+    PerguntaRepository perguntaRepository;
 
     public DadosFormularioDTO buscarDadosFormulario() {
         Map<Long, CursoFormularioDTO> cursos = buscarCursos();
@@ -33,10 +41,7 @@ public class DadosFormularioService {
     }
 
     private Map<Long, CursoFormularioDTO> buscarCursos() {
-        List<Curso> cursos = entityManager.createQuery(
-                "from Curso order by nome",
-                Curso.class
-        ).getResultList();
+        List<Curso> cursos = cursoRepository.findAllOrderedByNome();
 
         Map<Long, CursoFormularioDTO> cursosDTO = new LinkedHashMap<>();
         for (Curso curso : cursos) {
@@ -47,10 +52,7 @@ public class DadosFormularioService {
     }
 
     private void preencherDisciplinas(Map<Long, CursoFormularioDTO> cursos) {
-        List<Disciplina> disciplinas = entityManager.createQuery(
-                "from Disciplina d join fetch d.curso order by d.curso.nome, d.nome",
-                Disciplina.class
-        ).getResultList();
+        List<Disciplina> disciplinas = disciplinaRepository.findAllWithCursoOrdered();
 
         for (Disciplina disciplina : disciplinas) {
             CursoFormularioDTO curso = cursos.get(disciplina.getCurso().getId());
@@ -65,10 +67,7 @@ public class DadosFormularioService {
     }
 
     public List<PerguntaFormularioDTO> buscarPerguntas() {
-        return entityManager.createQuery(
-                "from Pergunta where codigo is not null",
-                Pergunta.class
-        ).getResultStream()
+        return perguntaRepository.findWithCodigo().stream()
                 .sorted(Comparator.comparingInt(this::ordemPergunta))
                 .map(pergunta -> new PerguntaFormularioDTO(pergunta.getCodigo(), pergunta.getTexto()))
                 .toList();

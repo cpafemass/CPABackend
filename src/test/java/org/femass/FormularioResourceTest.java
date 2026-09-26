@@ -1,7 +1,10 @@
 package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import io.restassured.path.json.JsonPath;
+import org.femass.repository.CursoRepository;
 import org.junit.jupiter.api.Test;
 
 
@@ -9,9 +12,13 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class FormularioResourceTest {
+
+    @Inject
+    CursoRepository cursoRepository;
 
     @Test
     void deveSalvarFormularioERetornarHash() {
@@ -164,5 +171,34 @@ class FormularioResourceTest {
                 .path("qrCode");
 
         org.hamcrest.MatcherAssert.assertThat(segundoCodigo, not(equalTo(primeiroCodigo)));
+    }
+    @Test
+    @Transactional
+    void deveFazerRollbackQuandoUmaDisciplinaNaoExiste() {
+        String curso = "Curso rollback " + System.nanoTime();
+        String formulario = """
+                {
+                  "respondent": {
+                    "cpf": "529.982.247-25",
+                    "matricula": "rollback-2026",
+                    "aceiteTermosCondicoesServico": true
+                  },
+                  "course": {"name": "%s"},
+                  "subjects": [{
+                    "subjectId": "999999",
+                    "subjectName": "Disciplina inexistente",
+                    "teacherName": "Professor Teste",
+                    "answers": [{"questionText": "Pergunta rollback?", "score": 5}]
+                  }]
+                }
+                """.formatted(curso);
+
+        given()
+                .contentType("application/json")
+                .body(formulario)
+                .when().post("/formulario")
+                .then().statusCode(400);
+
+        assertNull(cursoRepository.findByNome(curso));
     }
 }
