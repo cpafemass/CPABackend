@@ -1,6 +1,8 @@
-# CPA Backend - Validação com Hash
+# CPA Backend - Códigos de validação
 
-Sistema backend em **Quarkus** para armazenar payloads, gerar hashes SHA-256 e validar hashes. O frontend é responsável por gerar QR codes.
+Sistema backend em **Quarkus** que gera códigos opacos de validação para QR Codes.
+O código entregue ao cliente é um segredo aleatório de 128 bits, gerado com `SecureRandom`.
+O banco armazena somente o digest SHA-256 e nunca o código original ou dados pessoais.
 
 ## 🚀 Início Rápido
 
@@ -37,30 +39,43 @@ Se você tiver PostgreSQL instalado localmente na porta padrão `5432`, apenas:
 
 ## 📋 Endpoints Disponíveis
 
-### 1. Armazenar Payload
+### 1. Gerar código de validação
 ```bash
-POST /validacao/armazenar-hash
-Content-Type: text/plain
+POST /qrcode/gerar
+Content-Type: application/json
 
-seu_payload_aqui
+{"aceiteTermosCondicoesServico":true}
 ```
 
 **Resposta:**
 ```json
 {
-  "message": "Payload recebido com sucesso!",
-  "id": 1,
-  "hash": "f5c37fda...",
-  "payload": "seu_payload_aqui"
+  "qrCode": "codigo-opaco-base64url",
+  "codigoValidacao": "codigo-opaco-base64url",
+  "hash": "codigo-opaco-base64url"
 }
 ```
 
-### 2. Buscar Hash
+O campo `hash` é mantido apenas como alias legado do segredo entregue. Ele não é o digest persistido.
+
+### 2. Validar código
+```bash
+PUT /validacao/validar-hash?hash=CODIGO_VALIDACAO
+```
+
+O parâmetro `hash` é um alias legado; novos clientes devem usar `codigoValidacao` no próprio contrato.
+O código é de uso único e expira após `validacao.codigo-expiracao`, configurável pela variável
+`VALIDACAO_CODIGO_EXPIRACAO` (padrão: 14 dias / `PT336H`).
+
+O endpoint `/qrcode/decodificar` não decodifica payload: códigos são opacos e não carregam CPF,
+matrícula, curso ou disciplinas.
+
+### 3. Buscar código (compatibilidade)
 ```bash
 GET /validacao/buscar-hash?hash=SEU_HASH
 ```
 
-### 3. Verificar Status
+### 4. Verificar Status
 ```bash
 GET /validacao/verificar-status?hash=SEU_HASH
 ```
@@ -68,19 +83,14 @@ GET /validacao/verificar-status?hash=SEU_HASH
 **Resposta:**
 ```json
 {
-  "hash": "f5c37fda...",
+  "codigoValidacao": "codigo-opaco-base64url",
   "validado": false,
   "status": "PENDENTE",
-  "mensagem": "Este hash ainda está pendente de validação"
+  "mensagem": "Este codigo ainda está pendente de validação"
 }
 ```
 
-### 4. Validar Hash (Simples)
-```bash
-PUT /validacao/validar-hash?hash=SEU_HASH
-```
-
-### 5. Validar Hash (Detalhado)
+### 5. Validar código (Detalhado)
 ```bash
 PUT /validacao/validar-hash/detalhado?hash=SEU_HASH
 ```
@@ -88,9 +98,9 @@ PUT /validacao/validar-hash/detalhado?hash=SEU_HASH
 **Resposta:**
 ```json
 {
-  "hashValido": true,
+  "codigoValido": true,
   "id": 1,
-  "hash": "f5c37fda...",
+  "codigoValidacao": "codigo-opaco-base64url",
   "validado": true,
   "dataCriacao": "2026-05-15T10:30:45.123456",
   "dataValidacao": "2026-05-15T10:32:15.654321",
@@ -153,9 +163,10 @@ export QUARKUS_DATASOURCE_PASSWORD=sua-senha
 ```java
 @Entity
 public class Validacao extends PanacheEntity {
-    private String hash;                    // Hash SHA-256 do payload
+    private String codigoDigest;             // SHA-256 do código, nunca o segredo
     private Boolean validado;               // true/false
     private LocalDateTime dataCriacao;      // Quando foi criado
+    private LocalDateTime expiraEm;         // Prazo configurável
     private LocalDateTime dataValidacao;    // Quando foi validado
     private Integer tentativasValidacao;    // Contador de tentativas
 }
@@ -164,21 +175,21 @@ public class Validacao extends PanacheEntity {
 ## 🔄 Fluxo de Uso Recomendado
 
 ```
-1. Frontend armazena payload
-   POST /validacao/armazenar-hash
-   ← Recebe: ID + HASH
+1. Frontend solicita um código opaco
+   POST /qrcode/gerar
+   ← Recebe: codigoValidacao
 
 2. Frontend gera QR code com a biblioteca (ex: qrcode.js)
-   Usa o HASH recebido
+   Usa o codigoValidacao recebido
 
 3. Frontend exibe QR code ao usuário
 
 4. Usuário escaneia QR code
-   ← Captura o HASH
+   ← Captura o codigoValidacao
 
-5. Frontend valida o hash
-   PUT /validacao/validar-hash?hash=HASH_CAPTURADO
-   ← Hash marcado como validado
+5. Frontend valida o código
+   PUT /validacao/validar-hash?hash=CODIGO_CAPTURADO
+   ← Código marcado como validado e inutilizado
 ```
 
 ## 📦 Dependências Principais
@@ -278,3 +289,9 @@ cpa-backend/
 ---
 
 **Desenvolvido com ❤️ em Quarkus**
+# Códigos de validação
+
+Os códigos entregues pelo QR Code são segredos opacos de 128 bits, gerados por `SecureRandom`.
+O código não contém CPF, matrícula, curso ou disciplinas. O banco armazena somente o digest
+SHA-256 do segredo; por isso não existe endpoint de decodificação nem recuperação do código.
+Cada código é de uso único. Códigos criados antes da migração são invalidados pela migration V4.

@@ -9,15 +9,20 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "VALIDACAO")
 public class Validacao extends PanacheEntityBase {
+    @Transient
+    private String codigoValidacao;
     @Id
-    @Column(name = "HASH", length = 512, nullable = false, unique = true)
-    private String hash;
+    @Column(name = "CODIGO_DIGEST", length = 64, nullable = false, unique = true)
+    private String codigoDigest;
 
     @Column(name = "VALIDADO", nullable = false)
     private Boolean validado;
 
     @Column(name = "DATA_CRIACAO", nullable = true)
     private LocalDateTime dataCriacao;
+
+    @Column(name = "EXPIRA_EM", nullable = false)
+    private LocalDateTime expiraEm;
 
     @Column(name = "DATA_VALIDACAO", nullable = true)
     private LocalDateTime dataValidacao;
@@ -44,12 +49,26 @@ public class Validacao extends PanacheEntityBase {
         }
     }
 
-    public String getHash() {
-        return hash;
+    public String getCodigoDigest() {
+        return codigoDigest;
     }
 
+    public void setCodigoDigest(String codigoDigest) {
+        this.codigoDigest = codigoDigest;
+    }
+
+    public String getCodigoValidacao() { return codigoValidacao; }
+    public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }
+
+    /** Compatibilidade binária temporária; não deve ser exposto em respostas. */
+    @Deprecated
+    public String getHash() {
+        return codigoDigest;
+    }
+
+    @Deprecated
     public void setHash(String hash) {
-        this.hash = hash;
+        this.codigoDigest = hash;
     }
 
     public Boolean getValidado() {
@@ -66,6 +85,14 @@ public class Validacao extends PanacheEntityBase {
 
     public void setDataCriacao(LocalDateTime dataCriacao) {
         this.dataCriacao = dataCriacao;
+    }
+
+    public LocalDateTime getExpiraEm() {
+        return expiraEm;
+    }
+
+    public void setExpiraEm(LocalDateTime expiraEm) {
+        this.expiraEm = expiraEm;
     }
 
     public LocalDateTime getDataValidacao() {

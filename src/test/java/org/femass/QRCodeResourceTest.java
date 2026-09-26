@@ -1,11 +1,14 @@
 package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.femass.entity.Validacao;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import java.util.regex.Pattern;
 
 @QuarkusTest
 class QRCodeResourceTest {
@@ -29,22 +32,17 @@ class QRCodeResourceTest {
                 .statusCode(200)
                 .body("hash", notNullValue())
                 .body("qrCode", notNullValue())
+                .body("codigoValidacao", notNullValue())
                 .extract()
                 .path("qrCode");
 
-        given()
-                .contentType("text/plain")
-                .body(qrCode)
-                .when().post("/qrcode/decodificar")
-                .then()
-                .statusCode(200)
-                .body("cpf", is("1234"))
-                .body("matricula", is("20260001"))
-                .body("aceiteTermosCondicoesServico", is(true))
-                .body("cursos[0]", is("Sistemas da Informacao"))
-                .body("disciplinas[0]", is("ALG"))
-                .body("disciplinas[1]", is("SIS"))
-                .body("identificador", is("11111111-1111-1111-1111-111111111111"));
+        org.hamcrest.MatcherAssert.assertThat(qrCode, org.hamcrest.Matchers.matchesPattern("[A-Za-z0-9_-]{22}"));
+        org.hamcrest.MatcherAssert.assertThat(qrCode, not(org.hamcrest.Matchers.containsString("1234")));
+        String digest = Validacao.findAll().stream().map(Validacao.class::cast)
+                .map(Validacao::getCodigoDigest).filter(Pattern.compile("[0-9a-f]{64}").asPredicate())
+                .findFirst().orElseThrow();
+        org.hamcrest.MatcherAssert.assertThat(digest, org.hamcrest.Matchers.matchesPattern("[0-9a-f]{64}"));
+        org.hamcrest.MatcherAssert.assertThat(digest, not(org.hamcrest.Matchers.equalTo(qrCode)));
     }
 
     @Test
@@ -65,7 +63,7 @@ class QRCodeResourceTest {
                 .body("codigo-invalido")
                 .when().post("/qrcode/decodificar")
                 .then()
-                .statusCode(400)
-                .body("error", is("Codigo do QR Code invalido"));
+                .statusCode(410)
+                .body("error", is("Codigos sao opacos e nao podem ser decodificados"));
     }
 }

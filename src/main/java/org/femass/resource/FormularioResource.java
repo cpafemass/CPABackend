@@ -30,7 +30,7 @@ public class FormularioResource {
     public Response PostFormulario(FormularioDTO formularioDTO) {
         try {
             Validacao validacao = formularioService.salvarEGerarHash(formularioDTO);
-            return Response.ok(new QRCodeResponseDTO(validacao.getHash(), validacao.getHash())).build();
+            return Response.ok(new QRCodeResponseDTO(validacao.getCodigoValidacao(), validacao.getCodigoValidacao())).build();
         } catch (IllegalArgumentException | CPFInvalidoException | InvalidFormularioException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponseDTO(e.getMessage()))

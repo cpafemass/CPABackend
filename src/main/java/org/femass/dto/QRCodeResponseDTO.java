@@ -2,11 +2,11 @@ package org.femass.dto;
 
 public class QRCodeResponseDTO {
     private String qrCode;
-    private String hash;
+    private String codigoValidacao;
 
     public QRCodeResponseDTO(String qrCode, String hash) {
         this.qrCode = qrCode;
-        this.hash = hash;
+        this.codigoValidacao = hash;
     }
 
     public String getQrCode() {
@@ -18,11 +18,14 @@ public class QRCodeResponseDTO {
     }
 
     public String getHash() {
-        return hash;
+        return codigoValidacao;
     }
 
     public void setHash(String hash) {
-        this.hash = hash;
+        this.codigoValidacao = hash;
     }
+
+    public String getCodigoValidacao() { return codigoValidacao; }
+    public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }
 }
 

@@ -3,13 +3,13 @@ package org.femass.dto;
 public class ValidacaoResponseDTO {
     private String message;
     private String id;
-    private String hash;
+    private String codigoValidacao;
     private String payload;
 
     public ValidacaoResponseDTO(String message, String id, String hash, String payload) {
         this.message = message;
         this.id = id;
-        this.hash = hash;
+        this.codigoValidacao = hash;
         this.payload = payload;
     }
 
@@ -25,12 +25,15 @@ public class ValidacaoResponseDTO {
     public void setId(String id) { this.id = id; }
 
     public String getHash() {
-        return hash;
+        return codigoValidacao;
     }
 
     public void setHash(String hash) {
-        this.hash = hash;
+        this.codigoValidacao = hash;
     }
+
+    public String getCodigoValidacao() { return codigoValidacao; }
+    public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }
 
     public String getPayload() {
         return payload;

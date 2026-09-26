@@ -7,7 +7,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.femass.dto.*;
 import org.femass.entity.Validacao;
-import org.femass.service.QRCodeService;
 import org.femass.service.ValidacaoService;
 
 import java.util.List;
@@ -19,9 +18,6 @@ public class ValidacaoResource {
     @Inject
     ValidacaoService service;
 
-    @Inject
-    QRCodeService qrCodeService;
-
     @POST
     @Path("/armazenar-codigo")
     @Produces(MediaType.APPLICATION_JSON)
@@ -29,8 +25,8 @@ public class ValidacaoResource {
         Validacao validacao = service.armazenarCodigoValidacao(codigo);
         ValidacaoResponseDTO response = new ValidacaoResponseDTO(
             "Codigo recebido com sucesso!",
-            validacao.getHash(),
-            validacao.getHash(),
+            "codigo",
+            codigo,
             codigo
         );
         return Response.ok(response, MediaType.APPLICATION_JSON).build();
@@ -42,16 +38,15 @@ public class ValidacaoResource {
     public Response validarHash(@QueryParam("hash") String hash) {
         if (hash == null || hash.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponseDTO("Hash é obrigatório como parâmetro de query"))
+                .entity(new ErrorResponseDTO("Codigo de validacao e obrigatorio"))
                 .type(MediaType.APPLICATION_JSON)
                 .build();
         }
 
 
         try {
-            Validacao validacao = service.validarHash(hash);
-            var response = qrCodeService.decodificar(validacao.getHash());
-            return Response.ok(response, MediaType.APPLICATION_JSON).build();
+            service.validarCodigo(hash);
+            return Response.ok(new ValidacaoStatusDTO(hash, true, "VALIDADO", "Codigo validado com sucesso"), MediaType.APPLICATION_JSON).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(new ErrorResponseDTO(e.getMessage()))
@@ -64,7 +59,7 @@ public class ValidacaoResource {
                 .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(new ErrorResponseDTO("Erro ao validar hash: " + e.getMessage()))
+                .entity(new ErrorResponseDTO("Erro ao validar codigo"))
                 .type(MediaType.APPLICATION_JSON)
                 .build();
         }
@@ -76,12 +71,12 @@ public class ValidacaoResource {
     public Response validarHashDetalhado(@QueryParam("hash") String hash) {
         if (hash == null || hash.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ErrorResponseDTO("Hash é obrigatório como parâmetro de query"))
+                    .entity(new ErrorResponseDTO("Codigo de validacao e obrigatorio"))
                     .build();
         }
 
         try {
-            Validacao validacao = service.validarHash(hash);
+            Validacao validacao = service.validarCodigo(hash);
             long tempoDecorrido = java.time.temporal.ChronoUnit.MILLIS.between(
                 validacao.getDataCriacao(),
                 validacao.getDataValidacao()
@@ -89,8 +84,8 @@ public class ValidacaoResource {
 
             ValidacaoDetailResponseDTO response = new ValidacaoDetailResponseDTO(
                 true,
-                validacao.getHash(),
-                validacao.getHash(),
+                "codigo",
+                "codigo",
                 validacao.getValidado(),
                 validacao.getDataCriacao(),
                 validacao.getDataValidacao(),
@@ -110,7 +105,7 @@ public class ValidacaoResource {
                 .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(new ErrorResponseDTO("Erro ao validar hash: " + e.getMessage()))
+                .entity(new ErrorResponseDTO("Erro ao validar codigo"))
                     .type(MediaType.APPLICATION_JSON)
                 .build();
         }
@@ -122,7 +117,7 @@ public class ValidacaoResource {
     public Response verificarStatus(@QueryParam("hash") String hash) {
         if (hash == null || hash.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponseDTO("Hash é obrigatório como parâmetro de query"))
+                .entity(new ErrorResponseDTO("Codigo de validacao e obrigatorio"))
                 .build();
         }
 
@@ -141,7 +136,7 @@ public class ValidacaoResource {
                 .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(new ErrorResponseDTO("Erro ao verificar status: " + e.getMessage()))
+                .entity(new ErrorResponseDTO("Erro ao verificar status"))
                 .build();
         }
     }
@@ -152,16 +147,16 @@ public class ValidacaoResource {
     public Response buscarHash(@QueryParam("hash") String hash) {
         if (hash == null || hash.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponseDTO("Hash é obrigatório como parâmetro de query"))
+                .entity(new ErrorResponseDTO("Codigo de validacao e obrigatorio"))
                 .build();
         }
 
         try {
-            Validacao validacao = service.buscarHash(hash);
+            Validacao validacao = service.buscarCodigo(hash);
             ValidacaoResponseDTO response = new ValidacaoResponseDTO(
                 "Hash encontrado com sucesso!",
-                validacao.getHash(),
-                validacao.getHash(),
+                "codigo",
+                hash,
                 validacao.getValidado() ? "validado" : "pendente"
             );
             return Response.ok().entity(response).build();
@@ -171,7 +166,7 @@ public class ValidacaoResource {
                 .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(new ErrorResponseDTO("Erro ao buscar hash: " + e.getMessage()))
+                .entity(new ErrorResponseDTO("Erro ao buscar codigo"))
                 .build();
         }
     }
@@ -180,16 +175,15 @@ public class ValidacaoResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response historico() {
        try{
-           List<Validacao> historico = service.buscarDezUltimosHashs();
-           List<QRCodePayloadDTO> response = qrCodeService.decodificarListaHistorico(historico);
-           return Response.ok(response, MediaType.APPLICATION_JSON).build();
+           List<Validacao> historico = service.buscarDezUltimosCodigosValidados();
+           return Response.ok(historico.stream().map(v -> new ValidacaoStatusDTO("codigo", true, "VALIDADO", "Codigo validado")).toList(), MediaType.APPLICATION_JSON).build();
        }catch (IllegalArgumentException e) {
            return Response.status(Response.Status.NOT_FOUND)
                    .entity(new ErrorResponseDTO(e.getMessage()))
                    .build();
        } catch (Exception e) {
            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                   .entity(new ErrorResponseDTO("Erro ao buscar historico: " + e.getMessage()))
+                   .entity(new ErrorResponseDTO("Erro ao buscar historico"))
                    .build();
        }
 

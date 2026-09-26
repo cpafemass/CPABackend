@@ -1,8 +1,15 @@
 package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.transaction.Transactional;
+import org.femass.entity.Validacao;
+import org.femass.service.ValidacaoService;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -10,16 +17,18 @@ import static org.hamcrest.CoreMatchers.is;
 
 @QuarkusTest
 class ValidacaoResourceTest {
+    @jakarta.inject.Inject
+    ValidacaoService validacaoService;
     @Test
     void testHelloEndpoint() {
         given()
           .when().get("/validacao/verificar-status")
           .then()
              .statusCode(400)
-             .body("error", is("Hash é obrigatório como parâmetro de query"));
+             .body("error", is("Codigo de validacao e obrigatorio"));
     }
     @Test
-    void deveValidarHashERetornarDadosDecodificadosParaMobile() {
+    void deveValidarCodigoOpacoSemRetornarDadosPessoais() {
         String identificador = UUID.randomUUID().toString();
         String codigo = given()
                 .contentType("application/json")
@@ -44,12 +53,9 @@ class ValidacaoResourceTest {
                 .when().put("/validacao/validar-hash")
                 .then()
                 .statusCode(200)
-                .body("cpf", is("1234"))
-                .body("matricula", is("20260001"))
-                .body("aceiteTermosCondicoesServico", is(true))
-                .body("cursos[0]", is("Sistemas da Informacao"))
-                .body("disciplinas[0]", is("ALG"))
-                .body("disciplinas[1]", is("SIS"));
+                .body("codigoValidacao", is(codigo))
+                .body("cpf", org.hamcrest.Matchers.nullValue())
+                .body("matricula", org.hamcrest.Matchers.nullValue());
     }
 
     @Test
@@ -85,5 +91,23 @@ class ValidacaoResourceTest {
                 .then()
                 .statusCode(409)
                 .body("error", is("Codigo ja foi validado e nao pode ser reutilizado"));
+    }
+
+    @Test
+    @Transactional
+    void deveRecusarCodigoExpirado() throws Exception {
+        String codigo = given()
+                .contentType("application/json")
+                .body("{\"aceiteTermosCondicoesServico\":true}")
+                .when().post("/qrcode/gerar")
+                .then().statusCode(200).extract().path("codigoValidacao");
+
+        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        Validacao validacao = Validacao.find("codigoDigest", digest).firstResult();
+        validacao.setExpiraEm(LocalDateTime.now().minusMinutes(1));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> validacaoService.validarCodigo(codigo));
     }
 }
