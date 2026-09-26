@@ -3,7 +3,6 @@ package org.femass.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.femass.dto.CursoDTO;
 import org.femass.dto.FormularioDTO;
@@ -17,6 +16,10 @@ import org.femass.entity.Resposta;
 
 import org.femass.entity.Validacao;
 import org.femass.exception.CPFInvalidoException;
+import org.femass.repository.AvaliacaoRepository;
+import org.femass.repository.CursoRepository;
+import org.femass.repository.DisciplinaRepository;
+import org.femass.repository.PerguntaRepository;
 import org.femass.util.ValidacaoCPFUtil;
 
 import java.util.ArrayList;
@@ -26,7 +29,16 @@ import java.util.List;
 public class FormularioService {
 
     @Inject
-    EntityManager entityManager;
+    CursoRepository cursoRepository;
+
+    @Inject
+    DisciplinaRepository disciplinaRepository;
+
+    @Inject
+    PerguntaRepository perguntaRepository;
+
+    @Inject
+    AvaliacaoRepository avaliacaoRepository;
     
     @Inject
     ValidacaoService validacaoService;
@@ -119,7 +131,7 @@ public class FormularioService {
             }
 
             avaliacao.setRespostas(respostas);
-            entityManager.persist(avaliacao);
+            avaliacaoRepository.persist(avaliacao);
             avaliacoesSalvas++;
         }
 
@@ -127,7 +139,7 @@ public class FormularioService {
             throw new IllegalArgumentException("Nenhuma avaliacao valida foi informada");
         }
 
-        entityManager.flush();
+        avaliacaoRepository.flush();
     }
 
     private void validarFormulario(FormularioDTO formularioDTO) {
@@ -219,17 +231,12 @@ public class FormularioService {
      }
 
     private Curso buscarOuCriarCurso(CursoDTO cursoDTO) {
-        Curso curso = entityManager.createQuery(
-                "from Curso where nome = :nome", Curso.class)
-            .setParameter("nome", cursoDTO.name)
-            .getResultStream()
-            .findFirst()
-            .orElse(null);
+        Curso curso = cursoRepository.findByNome(cursoDTO.name);
 
         if (curso == null) {
             curso = new Curso();
             curso.setNome(cursoDTO.name);
-            entityManager.persist(curso);
+            cursoRepository.persist(curso);
         }
 
         return curso;
@@ -255,26 +262,14 @@ public class FormularioService {
         if (subjectDTO.subjectId != null && !subjectDTO.subjectId.isBlank()) {
             try {
                 Long did = Long.parseLong(subjectDTO.subjectId);
-                disciplina = entityManager.find(Disciplina.class, did);
-                if (disciplina != null) {
-                    // verify it belongs to the same course
-                    if (disciplina.getCurso() == null || disciplina.getCurso().getId() == null || !disciplina.getCurso().getId().equals(curso.getId())) {
-                        disciplina = null;
-                    }
-                }
+                disciplina = disciplinaRepository.findByIdAndCurso(did, curso.getId());
             } catch (NumberFormatException nfe) {
                 // subjectId is not a number; fallthrough to name search below
             }
         }
 
         if (disciplina == null && subjectDTO.teacherName != null && !subjectDTO.teacherName.isBlank()) {
-            disciplina = entityManager.createQuery(
-                    "from Disciplina where id = :id",
-                    Disciplina.class)
-                .setParameter("id", subjectDTO.subjectId)
-                .getResultStream()
-                .findFirst()
-                .orElse(null);
+            disciplina = disciplinaRepository.findByIdValue(subjectDTO.subjectId);
         }
 
         // If not found, return null so the caller will skip this subject.
@@ -285,27 +280,17 @@ public class FormularioService {
         Pergunta pergunta = null;
 
         if (respostaDTO.questionId != null && !respostaDTO.questionId.isBlank()) {
-            pergunta = entityManager.createQuery(
-                    "from Pergunta where codigo = :codigo", Pergunta.class)
-                .setParameter("codigo", respostaDTO.questionId)
-                .getResultStream()
-                .findFirst()
-                .orElse(null);
+            pergunta = perguntaRepository.findByCodigo(respostaDTO.questionId);
         }
 
         if (pergunta == null) {
-            pergunta = entityManager.createQuery(
-                    "from Pergunta where texto = :texto", Pergunta.class)
-                .setParameter("texto", respostaDTO.questionText)
-                .getResultStream()
-                .findFirst()
-                .orElse(null);
+            pergunta = perguntaRepository.findByTexto(respostaDTO.questionText);
         }
 
         if (pergunta == null) {
             pergunta = new Pergunta();
             pergunta.setTexto(respostaDTO.questionText);
-            entityManager.persist(pergunta);
+            perguntaRepository.persist(pergunta);
         }
 
         return pergunta;

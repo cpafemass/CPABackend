@@ -2,10 +2,10 @@ package org.femass.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.femass.entity.Validacao;
+import org.femass.repository.ValidacaoRepository;
 
 import java.util.List;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +16,9 @@ import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class ValidacaoService {
+
+    @Inject
+    ValidacaoRepository validacaoRepository;
 
     @Inject
     @ConfigProperty(name = "validacao.codigo-expiracao", defaultValue = "PT336H")
@@ -33,7 +36,7 @@ public class ValidacaoService {
         }
 
         String digest = calcularDigest(codigoValidacao);
-        Validacao validacaoExistente = Validacao.find("codigoDigest", digest).firstResult();
+        Validacao validacaoExistente = validacaoRepository.findByCodigoDigest(digest);
         if (validacaoExistente != null) {
             return validacaoExistente;
         }
@@ -43,15 +46,14 @@ public class ValidacaoService {
         validacao.setValidado(false);
         validacao.setExpiraEm(LocalDateTime.now().plus(codigoExpiracao));
         validacao.setAceiteTermosCondicoesServico(Boolean.TRUE.equals(aceiteTermosCondicoesServico));
-        validacao.persist();
+        validacaoRepository.persist(validacao);
 
         return validacao;
     }
 
     @Transactional
     public Validacao validarCodigo(String codigoValidacao) {
-        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao))
-                .withLock(LockModeType.PESSIMISTIC_WRITE).firstResult();
+        Validacao validacao = validacaoRepository.findByCodigoDigestForUpdate(calcularDigest(codigoValidacao));
 
         if (validacao == null) {
             throw new IllegalArgumentException("Codigo nao encontrado");
@@ -97,7 +99,7 @@ public class ValidacaoService {
     }
 
     public Boolean verificarStatusValidacao(String codigoValidacao) {
-        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao)).firstResult();
+        Validacao validacao = validacaoRepository.findByCodigoDigest(calcularDigest(codigoValidacao));
 
         if (validacao == null) {
             throw new IllegalArgumentException("Codigo nao encontrado");
@@ -107,7 +109,7 @@ public class ValidacaoService {
     }
 
     public Validacao buscarCodigo(String codigoValidacao) {
-        Validacao validacao = Validacao.find("codigoDigest", calcularDigest(codigoValidacao)).firstResult();
+        Validacao validacao = validacaoRepository.findByCodigoDigest(calcularDigest(codigoValidacao));
 
         if (validacao == null) {
             throw new IllegalArgumentException("Codigo nao encontrado");
@@ -121,14 +123,6 @@ public class ValidacaoService {
         catch (Exception e) { throw new IllegalStateException("Nao foi possivel processar o codigo"); }
     }
     public List<Validacao> buscarDezUltimosCodigosValidados(){
-        List<Validacao> lista = Validacao
-                .find("""
-                    validado = true
-                    and dataValidacao is not null
-                    ORDER BY dataValidacao DESC
-                    """)
-                .range(0, 9)
-                .list();
-            return lista;
+        return validacaoRepository.findLastValidated(10);
     }
 }
