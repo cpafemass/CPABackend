@@ -12,6 +12,7 @@ import org.femass.entity.Avaliacao;
 import org.femass.entity.Curso;
 import org.femass.entity.Disciplina;
 import org.femass.entity.Pergunta;
+import org.femass.entity.PublicoAvaliacao;
 import org.femass.entity.Resposta;
 
 import org.femass.entity.Validacao;
@@ -76,6 +77,7 @@ public class FormularioService {
         // Validar CPF do respondente (lança CPFInvalidoException em caso de problemas)
         validaCPF(formularioDTO);
 
+        PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
         Curso curso = buscarOuCriarCurso(formularioDTO.course);
         
         if (curso == null) {
@@ -116,6 +118,7 @@ public class FormularioService {
 
             Avaliacao avaliacao = new Avaliacao();
             avaliacao.setDisciplina(disciplina);
+            avaliacao.setPublico(publico);
             avaliacao.setComentariosGerais(subjectDTO.comment);
 
             List<Resposta> respostas = new ArrayList<>();

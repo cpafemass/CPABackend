@@ -16,6 +16,10 @@ public class Avaliacao {
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina; // Disciplina avaliada
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "PUBLICO", nullable = false, length = 20)
+    private PublicoAvaliacao publico = PublicoAvaliacao.ALUNO;
+
     @OneToMany(mappedBy = "avaliacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Resposta> respostas; // Respostas das perguntas
 
@@ -38,6 +42,14 @@ public class Avaliacao {
 
     public void setDisciplina(Disciplina disciplina) {
         this.disciplina = disciplina;
+    }
+
+    public PublicoAvaliacao getPublico() {
+        return publico;
+    }
+
+    public void setPublico(PublicoAvaliacao publico) {
+        this.publico = publico;
     }
 
     public List<Resposta> getRespostas() {

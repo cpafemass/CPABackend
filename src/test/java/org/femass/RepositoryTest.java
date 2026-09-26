@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.femass.entity.Avaliacao;
 import org.femass.entity.Disciplina;
 import org.femass.entity.Pergunta;
+import org.femass.entity.PublicoAvaliacao;
 import org.femass.entity.Resposta;
 import org.femass.entity.Validacao;
 import org.femass.repository.AvaliacaoRepository;
@@ -56,6 +57,7 @@ class RepositoryTest {
 
         Avaliacao avaliacao = new Avaliacao();
         avaliacao.setDisciplina(disciplina);
+        avaliacao.setPublico(PublicoAvaliacao.PROFESSOR);
 
         Resposta resposta = new Resposta();
         resposta.setAvaliacao(avaliacao);
@@ -68,6 +70,7 @@ class RepositoryTest {
         assertNotNull(avaliacao.getId());
         assertNotNull(resposta.getId());
         assertNotNull(respostaRepository.findById(resposta.getId()));
+        assertEquals(PublicoAvaliacao.PROFESSOR, avaliacaoRepository.findById(avaliacao.getId()).getPublico());
     }
 
     @Test
