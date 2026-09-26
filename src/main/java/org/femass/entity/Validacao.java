@@ -11,7 +11,12 @@ import java.time.LocalDateTime;
 public class Validacao extends PanacheEntityBase {
     @Transient
     private String codigoValidacao;
+
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID", nullable = false)
+    private Long id;
+
     @Column(name = "CODIGO_DIGEST", length = 64, nullable = false, unique = true)
     private String codigoDigest;
 
@@ -55,6 +60,14 @@ public class Validacao extends PanacheEntityBase {
 
     public void setCodigoDigest(String codigoDigest) {
         this.codigoDigest = codigoDigest;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getCodigoValidacao() { return codigoValidacao; }
