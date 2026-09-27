@@ -37,6 +37,53 @@ Se você tiver PostgreSQL instalado localmente na porta padrão `5432`, apenas:
 ./mvnw quarkus:dev
 ```
 
+## ✉️ Envio real de verificação por Gmail API
+
+O envio dos PINs para professores e funcionários usa a Gmail API com OAuth2. O backend
+recebe somente configurações por ambiente; client secret, refresh token e o segredo HMAC
+do e-mail não devem ser commitados nem registrados em logs.
+
+### Configuração no Google Cloud
+
+1. Crie uma conta Gmail dedicada para o sistema e um projeto no Google Cloud.
+2. Ative a **Gmail API** no projeto.
+3. Configure a tela de consentimento OAuth2 e um cliente OAuth para aplicação nativa.
+4. Autorize a conta remetente usando apenas o escopo `https://www.googleapis.com/auth/gmail.send`.
+5. Armazene o refresh token no gerenciador de segredos do ambiente de produção.
+
+Defina as variáveis abaixo no ambiente de execução:
+
+```text
+VERIFICACAO_EMAIL_GMAIL_ENABLED=true
+VERIFICACAO_EMAIL_GMAIL_CLIENT_ID=<client-id>
+VERIFICACAO_EMAIL_GMAIL_CLIENT_SECRET=<client-secret>
+VERIFICACAO_EMAIL_GMAIL_REFRESH_TOKEN=<refresh-token>
+VERIFICACAO_EMAIL_GMAIL_FROM=<conta-gmail-remetente>
+VERIFICACAO_EMAIL_DIGEST_SECRET=<segredo-aleatorio-longo>
+VERIFICACAO_EMAIL_GMAIL_CONNECT_TIMEOUT=PT10S
+VERIFICACAO_EMAIL_GMAIL_REQUEST_TIMEOUT=PT15S
+```
+
+No Docker Compose, essas variáveis são lidas do ambiente ou de um arquivo `.env` local
+que não deve ser versionado. Em produção, prefira Secret Manager, Vault ou mecanismo
+equivalente. Nunca coloque valores reais em `application.properties`, `docker-compose.yml`,
+logs ou respostas HTTP.
+
+### Teste manual e rotação
+
+Após iniciar o backend, solicite uma verificação para um endereço institucional permitido:
+
+```bash
+curl -X POST http://localhost:8080/verificacao-email/solicitar \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"destinatario@femass.edu.br","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}'
+```
+
+Confirme o PIN recebido e execute o fluxo de submissão usando o `submissionToken` retornado.
+Para rotacionar credenciais, revogue o cliente/token antigo no Google Cloud, gere novas
+credenciais, atualize o gerenciador de segredos e reinicie o serviço. O `VERIFICACAO_EMAIL_DIGEST_SECRET`
+também deve ser tratado como segredo de produção; sua troca invalida os digests existentes.
+
 ## 📋 Endpoints Disponíveis
 
 ### 1. Gerar código de validação
