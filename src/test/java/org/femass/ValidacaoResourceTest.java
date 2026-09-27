@@ -10,12 +10,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 class ValidacaoResourceTest {
@@ -48,64 +48,57 @@ class ValidacaoResourceTest {
     }
     @Test
     void deveValidarCodigoOpacoSemRetornarDadosPessoais() {
-        String identificador = UUID.randomUUID().toString();
         String codigo = given()
                 .contentType("application/json")
                 .body("""
                         {
-                          "cpf": "1234",
-                          "matricula": "20260001",
-                          "aceiteTermosCondicoesServico": true,
-                          "cursos": ["Sistemas da Informacao"],
-                          "disciplinas": ["ALG", "SIS"],
-                          "identificador": "%s"
+                          "aceiteTermosCondicoesServico": true
                         }
-                        """.formatted(identificador))
+                        """)
                 .when().post("/qrcode/gerar")
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("hash");
+                .path("codigoValidacao");
 
-        given()
-                .queryParam("hash", codigo)
+        Map<String, Object> resposta = given()
+                .queryParam("codigoValidacao", codigo)
                 .when().put("/validacao/validar-hash")
                 .then()
                 .statusCode(200)
                 .body("codigoValidacao", is(codigo))
-                .body("cpf", org.hamcrest.Matchers.nullValue())
-                .body("matricula", org.hamcrest.Matchers.nullValue());
+                .extract().as(Map.class);
+
+        assertFalse(resposta.containsKey("cpf"));
+        assertFalse(resposta.containsKey("matricula"));
+        assertFalse(resposta.containsKey("curso"));
+        assertFalse(resposta.containsKey("disciplinas"));
+        assertFalse(resposta.containsKey("hash"));
     }
 
     @Test
     void deveBloquearReusoDoMesmoCodigoValidado() {
-        String identificador = UUID.randomUUID().toString();
         String codigo = given()
                 .contentType("application/json")
                 .body("""
                         {
-                          "cpf": "5678",
-                          "matricula": "20260002",
-                          "aceiteTermosCondicoesServico": true,
-                          "cursos": ["Administracao"],
-                          "disciplinas": ["ADM"],
-                          "identificador": "%s"
+                          "aceiteTermosCondicoesServico": true
                         }
-                        """.formatted(identificador))
+                        """)
                 .when().post("/qrcode/gerar")
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("hash");
+                .path("codigoValidacao");
 
         given()
-                .queryParam("hash", codigo)
+                .queryParam("codigoValidacao", codigo)
                 .when().put("/validacao/validar-hash")
                 .then()
                 .statusCode(200);
 
         given()
-                .queryParam("hash", codigo)
+                .queryParam("codigoValidacao", codigo)
                 .when().put("/validacao/validar-hash")
                 .then()
                 .statusCode(409)

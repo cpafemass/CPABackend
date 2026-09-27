@@ -3,21 +3,21 @@ package org.femass.dto;
 import java.time.LocalDateTime;
 
 public class ValidacaoDetailResponseDTO {
-	private Boolean hashValido;
+	private Boolean codigoValido;
 	private String id;
-	private String hash;
+	private String codigoValidacao;
 	private Boolean validado;
 	private LocalDateTime dataCriacao;
 	private LocalDateTime dataValidacao;
 	private Integer tentativasValidacao;
 	private Long tempoDecorridoMs;
 
-	public ValidacaoDetailResponseDTO(Boolean hashValido, String id, String hash, Boolean validado,
+	public ValidacaoDetailResponseDTO(Boolean codigoValido, String id, String codigoValidacao, Boolean validado,
 									  LocalDateTime dataCriacao, LocalDateTime dataValidacao,
 									  Integer tentativasValidacao, Long tempoDecorridoMs) {
-		this.hashValido = hashValido;
+		this.codigoValido = codigoValido;
 		this.id = id;
-		this.hash = hash;
+		this.codigoValidacao = codigoValidacao;
 		this.validado = validado;
 		this.dataCriacao = dataCriacao;
 		this.dataValidacao = dataValidacao;
@@ -25,12 +25,12 @@ public class ValidacaoDetailResponseDTO {
 		this.tempoDecorridoMs = tempoDecorridoMs;
 	}
 
-	public Boolean getHashValido() { return hashValido; }
-	public void setHashValido(Boolean hashValido) { this.hashValido = hashValido; }
+	public Boolean getCodigoValido() { return codigoValido; }
+	public void setCodigoValido(Boolean codigoValido) { this.codigoValido = codigoValido; }
 	public String getId() { return id; }
 	public void setId(String id) { this.id = id; }
-	public String getHash() { return hash; }
-	public void setHash(String hash) { this.hash = hash; }
+	public String getCodigoValidacao() { return codigoValidacao; }
+	public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }
 	public Boolean getValidado() { return validado; }
 	public void setValidado(Boolean validado) { this.validado = validado; }
 	public LocalDateTime getDataCriacao() { return dataCriacao; }

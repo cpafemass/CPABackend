@@ -4,13 +4,13 @@ public class ValidacaoResponseDTO {
     private String message;
     private String id;
     private String codigoValidacao;
-    private String payload;
+    private String status;
 
-    public ValidacaoResponseDTO(String message, String id, String hash, String payload) {
+    public ValidacaoResponseDTO(String message, String id, String codigoValidacao, String status) {
         this.message = message;
         this.id = id;
-        this.codigoValidacao = hash;
-        this.payload = payload;
+        this.codigoValidacao = codigoValidacao;
+        this.status = status;
     }
 
     public String getMessage() {
@@ -24,23 +24,15 @@ public class ValidacaoResponseDTO {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public String getHash() {
-        return codigoValidacao;
-    }
-
-    public void setHash(String hash) {
-        this.codigoValidacao = hash;
-    }
-
     public String getCodigoValidacao() { return codigoValidacao; }
     public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }
 
-    public String getPayload() {
-        return payload;
+    public String getStatus() {
+        return status;
     }
 
-    public void setPayload(String payload) {
-        this.payload = payload;
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
 

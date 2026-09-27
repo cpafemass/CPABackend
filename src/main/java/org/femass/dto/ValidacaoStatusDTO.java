@@ -6,19 +6,11 @@ public class ValidacaoStatusDTO {
     private String status;
     private String mensagem;
 
-    public ValidacaoStatusDTO(String hash, Boolean validado, String status, String mensagem) {
-        this.codigoValidacao = hash;
+    public ValidacaoStatusDTO(String codigoValidacao, Boolean validado, String status, String mensagem) {
+        this.codigoValidacao = codigoValidacao;
         this.validado = validado;
         this.status = status;
         this.mensagem = mensagem;
-    }
-
-    public String getHash() {
-        return codigoValidacao;
-    }
-
-    public void setHash(String hash) {
-        this.codigoValidacao = hash;
     }
 
     public String getCodigoValidacao() { return codigoValidacao; }

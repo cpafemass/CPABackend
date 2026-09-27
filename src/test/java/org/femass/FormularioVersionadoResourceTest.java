@@ -1,13 +1,51 @@
 package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.InjectMock;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import org.femass.entity.Curso;
+import org.femass.entity.Disciplina;
+import org.femass.service.VerificacaoEmailService;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.given;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class FormularioVersionadoResourceTest {
+
+    @InjectMock
+    VerificacaoEmailService verificacaoEmailService;
+
+    @jakarta.inject.Inject
+    EntityManager entityManager;
+
+    private Long disciplinaId;
+    private String nomeCurso;
+
+    @org.junit.jupiter.api.BeforeEach
+    @Transactional
+    void prepararDisciplinaDoCenario() {
+        doNothing().when(verificacaoEmailService).consumirAutorizacaoParaEnvio(any(), any(), any(), any(), any());
+
+        nomeCurso = "Curso de teste versionado " + UUID.randomUUID();
+        Curso curso = new Curso();
+        curso.setNome(nomeCurso);
+        entityManager.persist(curso);
+
+        Disciplina disciplina = new Disciplina();
+        disciplina.setNome("Disciplina versionada de teste");
+        disciplina.setProfessor("Professor de teste");
+        disciplina.setCurso(curso);
+        entityManager.persist(disciplina);
+        entityManager.flush();
+        disciplinaId = disciplina.getId();
+    }
 
     @Test
     void deveListarCatalogoPorCampanhaEPublico() {
@@ -37,9 +75,9 @@ class FormularioVersionadoResourceTest {
                     "matricula": "professor-versionado",
                     "aceiteTermosCondicoesServico": true
                   },
-                  "course": {"name": "Administração"},
+                  "course": {"name": "%s"},
                   "subjects": [{
-                    "subjectId": "1",
+                    "subjectId": "%d",
                     "subjectName": "Noções Básicas de Administração",
                     "teacherName": "Professor Teste",
                     "comment": "<b>comentario</b>",
@@ -50,7 +88,7 @@ class FormularioVersionadoResourceTest {
                     }]
                   }]
                 }
-                """;
+                """.formatted(nomeCurso, disciplinaId);
 
         given().contentType("application/json").body(formulario)
                 .when().post("/formulario")
@@ -73,15 +111,15 @@ class FormularioVersionadoResourceTest {
                   "form": "docente_disciplinas",
                   "formVersion": 1,
                   "respondent": {"type": "professor", "cpf": "529.982.247-25", "matricula": "%s", "aceiteTermosCondicoesServico": true},
-                  "course": {"name": "Administração"},
-                  "subjects": [{"subjectId": "1", "subjectName": "Noções Básicas de Administração", "teacherName": "Professor Teste", "answers": [{"questionId": "%s", "optionCode": "%s"}]}]
+                  "course": {"name": "%s"},
+                  "subjects": [{"subjectId": "%d", "subjectName": "Disciplina versionada de teste", "teacherName": "Professor Teste", "answers": [{"questionId": "%s", "optionCode": "%s"}]}]
                 }
                 """;
 
-        given().contentType("application/json").body(base.formatted("versao-pergunta", "q99", "concordo_totalmente"))
+        given().contentType("application/json").body(base.formatted("versao-pergunta", nomeCurso, disciplinaId, "q99", "concordo_totalmente"))
                 .when().post("/formulario").then().statusCode(400);
 
-        given().contentType("application/json").body(base.formatted("versao-opcao", "q1", "opcao-inexistente"))
+        given().contentType("application/json").body(base.formatted("versao-opcao", nomeCurso, disciplinaId, "q1", "opcao-inexistente"))
                 .when().post("/formulario").then().statusCode(400);
     }
 }
