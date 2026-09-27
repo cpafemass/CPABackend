@@ -43,13 +43,13 @@ class VerificacaoEmailResourceTest {
 
         given().contentType("application/json").body("""
                 {"campaign":"cpa-2026", "form":"docente_gestao", "formVersion":1,
-                 "respondent":{"type":"professor","cpf":"529.982.247-25","matricula":"prof-2026","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
+                 "respondent":{"type":"professor","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
                 """.formatted(token)).when().post("/formulario").then().statusCode(200);
 
         given().contentType("application/json").body("""
                 {"campaign":"cpa-2026", "form":"docente_gestao", "formVersion":1,
-                 "respondent":{"type":"professor","cpf":"529.982.247-25","matricula":"prof-2026","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
+                 "respondent":{"type":"professor","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
                 """.formatted(token)).when().post("/formulario").then().statusCode(400);
     }

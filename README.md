@@ -15,6 +15,54 @@ docker compose up --build
 O backend estará disponível em `http://localhost:8080`
 O PostgreSQL estará em `localhost:5433`
 
+## Configuração por `.env`
+
+Para Docker Compose, crie `.env` na raiz. Ele é ignorado pelo Git. Os valores abaixo são exemplos locais; substitua todos os placeholders e nunca versione credenciais reais.
+
+```env
+# Infraestrutura local
+POSTGRES_DB=cpa-femass
+POSTGRES_USER=postgres
+QUARKUS_DATASOURCE_PASSWORD_VARIABLE=troque-esta-senha
+POSTGRES_PORT=5433
+BACKEND_PORT=8080
+FRONTEND_PORT=5173
+
+# CORS e Keycloak
+QUARKUS_HTTP_CORS_ORIGINS_VARIABLE=http://localhost:5173
+KEYCLOAK_ADMIN_USERNAME=admin
+KEYCLOAK_ADMIN_PASSWORD=troque-admin-keycloak
+KEYCLOAK_CPA_ADMIN_PASSWORD=troque-admin-cpa
+KEYCLOAK_PORT=8180
+KEYCLOAK_PUBLIC_URL=http://localhost:8180
+KEYCLOAK_AUTH_SERVER_URL=http://keycloak:8080/realms/cpa
+KEYCLOAK_CLIENT_ID=cpa-backend
+
+# Banco, caso seja necessário sobrescrever o endereço interno do Compose
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/cpa-femass
+QUARKUS_DATASOURCE_USERNAME=postgres
+
+# Códigos de validação e PIN
+VALIDACAO_CODIGO_EXPIRACAO=PT336H
+VERIFICACAO_EMAIL_PIN_EXPIRACAO=PT2H
+VERIFICACAO_EMAIL_AUTORIZACAO_EXPIRACAO=PT15M
+VERIFICACAO_EMAIL_MAX_TENTATIVAS=5
+VERIFICACAO_EMAIL_MAX_REENVIOS_JANELA=3
+VERIFICACAO_EMAIL_JANELA_REENVIO=PT1H
+VERIFICACAO_EMAIL_DIGEST_SECRET=gere-um-segredo-longo-e-aleatorio
+
+# Gmail API — mantenha false até configurar todas as cinco variáveis seguintes.
+VERIFICACAO_EMAIL_GMAIL_ENABLED=false
+VERIFICACAO_EMAIL_GMAIL_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+VERIFICACAO_EMAIL_GMAIL_CLIENT_SECRET=seu-client-secret
+VERIFICACAO_EMAIL_GMAIL_REFRESH_TOKEN=seu-refresh-token
+VERIFICACAO_EMAIL_GMAIL_FROM=remetente@example.com
+VERIFICACAO_EMAIL_GMAIL_CONNECT_TIMEOUT=PT10S
+VERIFICACAO_EMAIL_GMAIL_REQUEST_TIMEOUT=PT15S
+```
+
+As durações usam o formato ISO-8601 (`PT15M`, `PT2H`, `PT336H`). O Compose encaminha todas essas variáveis ao serviço correspondente.
+
 ### Opção 2: Local com Postgres do Docker
 
 1. **Inicie apenas o Postgres**
