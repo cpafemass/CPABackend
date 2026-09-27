@@ -1,13 +1,26 @@
 package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.InjectMock;
+import org.femass.service.VerificacaoEmailService;
 import org.junit.jupiter.api.Test;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 class FormularioResourceTest {
+    @InjectMock
+    VerificacaoEmailService verificacaoEmailService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void liberarVerificacaoParaCenariosLegados() {
+        doNothing().when(verificacaoEmailService).consumirAutorizacaoParaEnvio(any(), any(), any(), any(), any());
+    }
+
     @Test
     void deveRejeitarPayloadLegado() {
         given().contentType("application/json").body("""

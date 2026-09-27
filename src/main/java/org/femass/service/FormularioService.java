@@ -50,6 +50,9 @@ public class FormularioService {
     @Inject
     ValidacaoService validacaoService;
 
+    @Inject
+    VerificacaoEmailService verificacaoEmailService;
+
 
 
     @Inject
@@ -76,6 +79,13 @@ public class FormularioService {
         validarFormulario(formularioDTO);
         validaCPF(formularioDTO);
         PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
+        verificacaoEmailService.consumirAutorizacaoParaEnvio(
+                formularioDTO.respondent.emailVerificationToken,
+                publico,
+                formularioDTO.campaign,
+                formularioDTO.form,
+                formularioDTO.formVersion
+        );
         FormularioVersao formularioVersao = resolverFormularioVersao(formularioDTO, publico);
         if (formularioVersao.getEscopo() == EscopoFormulario.DISCIPLINA) {
             salvarPorDisciplina(formularioDTO, publico, formularioVersao);

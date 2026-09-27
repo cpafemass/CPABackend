@@ -6,4 +6,6 @@ public class UsuarioDTO {
     public String cpf;
     public String matricula;
     public Boolean aceiteTermosCondicoesServico;
+    /** Autorizacao opaca emitida apos a confirmacao do PIN de e-mail. */
+    public String emailVerificationToken;
 }
