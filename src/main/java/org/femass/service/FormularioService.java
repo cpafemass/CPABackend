@@ -77,8 +77,10 @@ public class FormularioService {
 
     private void salvarFormulario(FormularioDTO formularioDTO) {
         validarFormulario(formularioDTO);
-        validaCPF(formularioDTO);
         PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
+        if (publico == PublicoAvaliacao.ALUNO) {
+            validaCPF(formularioDTO);
+        }
         verificacaoEmailService.consumirAutorizacaoParaEnvio(
                 formularioDTO.respondent.emailVerificationToken,
                 publico,
@@ -107,16 +109,17 @@ public class FormularioService {
             throw new IllegalArgumentException("Dados do respondente sao obrigatorios");
         }
 
-        if (formularioDTO.respondent.cpf == null || formularioDTO.respondent.cpf.isBlank()) {
-            throw new IllegalArgumentException("CPF do respondente e obrigatorio");
-        }
-
-        if (apenasDigitos(formularioDTO.respondent.cpf).length() < 4) {
-            throw new IllegalArgumentException("CPF do respondente deve ter ao menos 4 digitos");
-        }
-
-        if (formularioDTO.respondent.matricula == null || formularioDTO.respondent.matricula.isBlank()) {
-            throw new IllegalArgumentException("Matricula do respondente e obrigatoria");
+        PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
+        if (publico == PublicoAvaliacao.ALUNO) {
+            if (formularioDTO.respondent.cpf == null || formularioDTO.respondent.cpf.isBlank()) {
+                throw new IllegalArgumentException("CPF do respondente e obrigatorio");
+            }
+            if (apenasDigitos(formularioDTO.respondent.cpf).length() < 4) {
+                throw new IllegalArgumentException("CPF do respondente deve ter ao menos 4 digitos");
+            }
+            if (formularioDTO.respondent.matricula == null || formularioDTO.respondent.matricula.isBlank()) {
+                throw new IllegalArgumentException("Matricula do respondente e obrigatoria");
+            }
         }
 
         if (!Boolean.TRUE.equals(formularioDTO.respondent.aceiteTermosCondicoesServico)) {
