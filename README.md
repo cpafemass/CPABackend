@@ -80,10 +80,32 @@ em desenvolvimento e em produção de baixo volume.
 6. Em **Acesso a dados**, adicione somente o escopo
    `https://www.googleapis.com/auth/gmail.send`.
 7. Em **Clientes**, crie um cliente OAuth do tipo **Desktop app** e baixe o JSON.
-8. Execute um fluxo OAuth local para aplicação nativa com `access_type=offline` e
-   `prompt=consent`. Faça login somente com a conta remetente e guarde o refresh token
-   localmente. Nunca envie o JSON, o client secret ou o refresh token para o repositório
-   ou para uma conversa.
+8. Execute o utilitário local deste repositório para iniciar o fluxo OAuth com
+   `access_type=offline` e `prompt=consent`:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\generate-gmail-refresh-token.ps1
+   ```
+
+   O script procura o JSON baixado em `Downloads\client_secret_*.json`, mostra uma URL
+   para o navegador e aguarda o retorno local em `127.0.0.1:8766`. Faça login somente
+   com a conta remetente e aceite o escopo `gmail.send`. O refresh token é salvo em
+   `Downloads\cpabackend-gmail-refresh-token.txt` e nunca é impresso pelo script.
+   Nunca envie o JSON, o client secret ou o refresh token para o repositório ou para
+   uma conversa.
+
+   Para usar outro JSON, porta ou arquivo de saída:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\generate-gmail-refresh-token.ps1 `
+     -ClientJsonPath 'C:\caminho\client_secret.json' `
+     -Port 8766 `
+     -OutputPath 'C:\caminho\cpabackend-gmail-refresh-token.txt'
+   ```
+
+   Se o arquivo de saída já existir, o script interrompe a execução para evitar
+   sobrescrita acidental. Use `-Force` somente durante uma rotação intencional, depois
+   de revogar o token anterior no Google Cloud.
 
 Na raiz do projeto, crie um arquivo `.env` local. Ele já é ignorado pelo Git:
 
