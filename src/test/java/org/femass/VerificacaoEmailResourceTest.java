@@ -22,7 +22,7 @@ class VerificacaoEmailResourceTest {
     EmailSender emailSender;
 
     @Test
-    void deveEnviarPinConfirmarEUsoUnico() {
+    void deveAutorizarTodosOsFormulariosDaJornadaDoProfessor() {
         String email = "professor-" + UUID.randomUUID() + "@femass.edu.br";
         Number verificationId = given().contentType("application/json").body("""
                 {"email":"%s","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}
@@ -42,7 +42,7 @@ class VerificacaoEmailResourceTest {
                 .extract().path("submissionToken");
 
         given().contentType("application/json").body("""
-                {"campaign":"cpa-2026", "form":"docente_gestao", "formVersion":1,
+                {"campaign":"cpa-2026", "form":"docente_instituicao", "formVersion":1,
                  "respondent":{"type":"professor","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
                 """.formatted(token)).when().post("/formulario").then().statusCode(200);
@@ -51,7 +51,7 @@ class VerificacaoEmailResourceTest {
                 {"campaign":"cpa-2026", "form":"docente_gestao", "formVersion":1,
                  "respondent":{"type":"professor","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
-                """.formatted(token)).when().post("/formulario").then().statusCode(400);
+                """.formatted(token)).when().post("/formulario").then().statusCode(200);
     }
 
     @Test
