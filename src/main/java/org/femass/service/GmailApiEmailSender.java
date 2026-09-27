@@ -7,7 +7,6 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -19,18 +18,19 @@ import java.util.Map;
 public class GmailApiEmailSender implements EmailSender {
     private static final URI TOKEN_URI = URI.create("https://oauth2.googleapis.com/token");
     private static final URI SEND_URI = URI.create("https://gmail.googleapis.com/gmail/v1/users/me/messages/send");
-    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-
     @Inject ObjectMapper objectMapper;
+    @Inject GmailApiTransport transport;
     @ConfigProperty(name = "verificacao-email.gmail.enabled", defaultValue = "false") boolean enabled;
     @ConfigProperty(name = "verificacao-email.gmail.client-id", defaultValue = "not-configured") String clientId;
     @ConfigProperty(name = "verificacao-email.gmail.client-secret", defaultValue = "not-configured") String clientSecret;
     @ConfigProperty(name = "verificacao-email.gmail.refresh-token", defaultValue = "not-configured") String refreshToken;
     @ConfigProperty(name = "verificacao-email.gmail.from", defaultValue = "not-configured") String from;
+    @ConfigProperty(name = "verificacao-email.gmail.request-timeout", defaultValue = "PT15S") Duration requestTimeout;
 
     @Override
     public void enviarPin(String destinatario, String pin) {
-        if (!enabled || isBlank(clientId) || isBlank(clientSecret) || isBlank(refreshToken) || isBlank(from)) {
+        if (!enabled || isBlank(clientId) || isBlank(clientSecret) || isBlank(refreshToken)
+                || !isValidAddress(from) || !isValidAddress(destinatario)) {
             throw new EmailDeliveryException();
         }
         try {
@@ -39,12 +39,12 @@ public class GmailApiEmailSender implements EmailSender {
                     mensagemMime(destinatario, pin).getBytes(StandardCharsets.UTF_8));
             String body = objectMapper.writeValueAsString(Map.of("raw", raw));
             HttpRequest request = HttpRequest.newBuilder(SEND_URI)
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(requestTimeout)
                     .header("Authorization", "Bearer " + accessToken)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                     .build();
-            HttpResponse<Void> response = HTTP.send(request, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<String> response = transport.send(request);
             if (response.statusCode() < 200 || response.statusCode() >= 300) throw new EmailDeliveryException();
         } catch (EmailDeliveryException e) {
             throw e;
@@ -59,11 +59,11 @@ public class GmailApiEmailSender implements EmailSender {
                 + "&refresh_token=" + encode(refreshToken)
                 + "&grant_type=refresh_token";
         HttpRequest request = HttpRequest.newBuilder(TOKEN_URI)
-                .timeout(Duration.ofSeconds(15))
+                .timeout(requestTimeout)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                 .build();
-        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<String> response = transport.send(request);
         if (response.statusCode() < 200 || response.statusCode() >= 300) throw new EmailDeliveryException();
         JsonNode json = objectMapper.readTree(response.body());
         String accessToken = json.path("access_token").asText();
@@ -86,4 +86,8 @@ public class GmailApiEmailSender implements EmailSender {
     }
 
     private boolean isBlank(String value) { return value == null || value.isBlank(); }
+
+    private boolean isValidAddress(String value) {
+        return !isBlank(value) && value.matches("^[^\\s@\\r\\n]+@[^\\s@\\r\\n]+$");
+    }
 }
