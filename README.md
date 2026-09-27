@@ -51,19 +51,19 @@ Content-Type: application/json
 ```json
 {
   "qrCode": "codigo-opaco-base64url",
-  "codigoValidacao": "codigo-opaco-base64url",
-  "hash": "codigo-opaco-base64url"
+  "codigoValidacao": "codigo-opaco-base64url"
 }
 ```
 
-O campo `hash` é mantido apenas como alias legado do segredo entregue. Ele não é o digest persistido.
+O banco persiste apenas `codigoDigest`, o SHA-256 do segredo. O segredo `codigoValidacao`
+nunca é recuperável pelo banco após a geração.
 
 ### 2. Validar código
 ```bash
-PUT /validacao/validar-hash?hash=CODIGO_VALIDACAO
+PUT /validacao/validar-hash?codigoValidacao=CODIGO_VALIDACAO
 ```
 
-O parâmetro `hash` é um alias legado; novos clientes devem usar `codigoValidacao` no próprio contrato.
+O parâmetro `hash` permanece aceito temporariamente como alias de compatibilidade.
 O código é de uso único e expira após `validacao.codigo-expiracao`, configurável pela variável
 `VALIDACAO_CODIGO_EXPIRACAO` (padrão: 14 dias / `PT336H`).
 
@@ -72,12 +72,12 @@ matrícula, curso ou disciplinas.
 
 ### 3. Buscar código (compatibilidade)
 ```bash
-GET /validacao/buscar-hash?hash=SEU_HASH
+GET /validacao/buscar-hash?codigoValidacao=SEU_CODIGO
 ```
 
 ### 4. Verificar Status
 ```bash
-GET /validacao/verificar-status?hash=SEU_HASH
+GET /validacao/verificar-status?codigoValidacao=SEU_CODIGO
 ```
 
 **Resposta:**
@@ -92,7 +92,7 @@ GET /validacao/verificar-status?hash=SEU_HASH
 
 ### 5. Validar código (Detalhado)
 ```bash
-PUT /validacao/validar-hash/detalhado?hash=SEU_HASH
+PUT /validacao/validar-hash/detalhado?codigoValidacao=SEU_CODIGO
 ```
 
 **Resposta:**
@@ -192,7 +192,7 @@ public class Validacao extends PanacheEntity {
    ← Captura o codigoValidacao
 
 5. Frontend valida o código
-   PUT /validacao/validar-hash?hash=CODIGO_CAPTURADO
+   PUT /validacao/validar-hash?codigoValidacao=CODIGO_CAPTURADO
    ← Código marcado como validado e inutilizado
 ```
 

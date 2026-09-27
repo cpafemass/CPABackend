@@ -4,9 +4,9 @@ public class QRCodeResponseDTO {
     private String qrCode;
     private String codigoValidacao;
 
-    public QRCodeResponseDTO(String qrCode, String hash) {
+    public QRCodeResponseDTO(String qrCode, String codigoValidacao) {
         this.qrCode = qrCode;
-        this.codigoValidacao = hash;
+        this.codigoValidacao = codigoValidacao;
     }
 
     public String getQrCode() {
@@ -15,14 +15,6 @@ public class QRCodeResponseDTO {
 
     public void setQrCode(String qrCode) {
         this.qrCode = qrCode;
-    }
-
-    public String getHash() {
-        return codigoValidacao;
-    }
-
-    public void setHash(String hash) {
-        this.codigoValidacao = hash;
     }
 
     public String getCodigoValidacao() { return codigoValidacao; }

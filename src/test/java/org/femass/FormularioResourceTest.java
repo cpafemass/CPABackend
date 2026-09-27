@@ -2,8 +2,14 @@ package org.femass;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.InjectMock;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import org.femass.entity.Curso;
+import org.femass.entity.Disciplina;
 import org.femass.service.VerificacaoEmailService;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -16,9 +22,29 @@ class FormularioResourceTest {
     @InjectMock
     VerificacaoEmailService verificacaoEmailService;
 
+    @jakarta.inject.Inject
+    EntityManager entityManager;
+
+    private Long disciplinaId;
+    private String nomeCurso;
+
     @org.junit.jupiter.api.BeforeEach
+    @Transactional
     void liberarVerificacaoParaCenariosLegados() {
         doNothing().when(verificacaoEmailService).consumirAutorizacaoParaEnvio(any(), any(), any(), any(), any());
+
+        nomeCurso = "Curso de teste issue 8 " + UUID.randomUUID();
+        Curso curso = new Curso();
+        curso.setNome(nomeCurso);
+        entityManager.persist(curso);
+
+        Disciplina disciplina = new Disciplina();
+        disciplina.setNome("Disciplina de teste issue 8");
+        disciplina.setProfessor("Professor de teste");
+        disciplina.setCurso(curso);
+        entityManager.persist(disciplina);
+        entityManager.flush();
+        disciplinaId = disciplina.getId();
     }
 
     @Test
@@ -30,14 +56,17 @@ class FormularioResourceTest {
 
     @Test
     void deveSalvarFormularioDisciplinarVersionado() {
-        given().contentType("application/json").body("""
+        String formulario = """
                 {
                   "campaign":"cpa-2026", "form":"discente_disciplinas", "formVersion":1,
                   "respondent":{"type":"aluno","cpf":"529.982.247-25","matricula":"discente-2026","aceiteTermosCondicoesServico":true},
-                  "course":{"name":"Administração"},
-                  "subjects":[{"subjectId":"1","answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}]
+                  "course":{"name":"%s"},
+                  "subjects":[{"subjectId":"%d","answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}]
                 }
-                """).when().post("/formulario").then().statusCode(200).body("codigoValidacao", notNullValue());
+                """.formatted(nomeCurso, disciplinaId);
+
+        given().contentType("application/json").body(formulario)
+                .when().post("/formulario").then().statusCode(200).body("codigoValidacao", notNullValue());
     }
 
     @Test

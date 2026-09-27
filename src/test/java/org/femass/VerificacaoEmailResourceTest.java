@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 
 import org.mockito.ArgumentCaptor;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,9 +23,10 @@ class VerificacaoEmailResourceTest {
 
     @Test
     void deveEnviarPinConfirmarEUsoUnico() {
+        String email = "professor-" + UUID.randomUUID() + "@femass.edu.br";
         Number verificationId = given().contentType("application/json").body("""
-                {"email":"professor@femass.edu.br","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}
-                """).when().post("/verificacao-email/solicitar")
+                {"email":"%s","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}
+                """.formatted(email)).when().post("/verificacao-email/solicitar")
                 .then().statusCode(202).body("verificationId", notNullValue())
                 .extract().path("verificationId");
 
@@ -60,9 +63,10 @@ class VerificacaoEmailResourceTest {
 
     @Test
     void reenvioInvalidaPinAnterior() {
+        String email = "reenvio-" + UUID.randomUUID() + "@femass.edu.br";
         String request = """
-                {"email":"reenvio@femass.edu.br","publico":"funcionario","campaign":"cpa-2026","form":"funcionario_gestao","formVersion":1}
-                """;
+                {"email":"%s","publico":"funcionario","campaign":"cpa-2026","form":"funcionario_gestao","formVersion":1}
+                """.formatted(email);
         Number primeiro = given().contentType("application/json").body(request).when().post("/verificacao-email/solicitar")
                 .then().statusCode(202).extract().path("verificationId");
         Number segundo = given().contentType("application/json").body(request).when().post("/verificacao-email/solicitar")
