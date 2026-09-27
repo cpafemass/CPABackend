@@ -29,6 +29,11 @@ docker compose up postgres
 
 O backend estará em `http://localhost:8080`
 
+Com o perfil de desenvolvimento ativo (incluindo `./mvnw quarkus:dev`), a documentação
+interativa fica disponível em `http://localhost:8080/swagger-ui/`. O documento OpenAPI
+correspondente está em `http://localhost:8080/openapi`. Esses endpoints são desabilitados
+nos demais perfis, inclusive em produção.
+
 ### Opção 3: Totalmente Local
 
 Se você tiver PostgreSQL instalado localmente na porta padrão `5432`, apenas:
@@ -267,6 +272,8 @@ Os repositories em `src/main/java/org/femass/repository` são responsáveis por 
 Qualquer alteração no código é recarregada automaticamente.
 
 Dev UI disponível em: `http://localhost:8080/q/dev/`
+
+Swagger UI disponível somente em desenvolvimento: `http://localhost:8080/swagger-ui/`
 
 ### Compilação e Packaging
 
