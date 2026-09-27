@@ -43,13 +43,11 @@ O envio dos PINs para professores e funcionários usa a Gmail API com OAuth2. O 
 recebe somente configurações por ambiente; client secret, refresh token e o segredo HMAC
 do e-mail não devem ser commitados nem registrados em logs.
 
-### Configuração no Google Cloud
+O escopo utilizado é somente `https://www.googleapis.com/auth/gmail.send`. A conta que
+autoriza o OAuth é a conta remetente; os destinatários dos PINs não precisam autorizar o
+aplicativo.
 
-1. Crie uma conta Gmail dedicada para o sistema e um projeto no Google Cloud.
-2. Ative a **Gmail API** no projeto.
-3. Configure a tela de consentimento OAuth2 e um cliente OAuth para aplicação nativa.
-4. Autorize a conta remetente usando apenas o escopo `https://www.googleapis.com/auth/gmail.send`.
-5. Armazene o refresh token no gerenciador de segredos do ambiente de produção.
+### Variáveis de ambiente
 
 Defina as variáveis abaixo no ambiente de execução:
 
@@ -64,10 +62,83 @@ VERIFICACAO_EMAIL_GMAIL_CONNECT_TIMEOUT=PT10S
 VERIFICACAO_EMAIL_GMAIL_REQUEST_TIMEOUT=PT15S
 ```
 
-No Docker Compose, essas variáveis são lidas do ambiente ou de um arquivo `.env` local
-que não deve ser versionado. Em produção, prefira Secret Manager, Vault ou mecanismo
-equivalente. Nunca coloque valores reais em `application.properties`, `docker-compose.yml`,
-logs ou respostas HTTP.
+Nunca coloque valores reais em `application.properties`, `docker-compose.yml`, logs,
+respostas HTTP ou commits.
+
+### Configuração para desenvolvimento local
+
+Para um projeto pequeno, uma conta pessoal Gmail dedicada (`@gmail.com`) pode ser usada
+em desenvolvimento e em produção de baixo volume.
+
+1. Crie uma conta Gmail dedicada para o sistema.
+2. Crie um projeto no [Google Cloud Console](https://console.cloud.google.com/).
+3. Em **APIs e serviços → Biblioteca**, ative a **Gmail API**.
+4. Em **Google Auth Platform → Branding**, informe o nome do aplicativo, e-mail de
+   suporte e e-mail de contato.
+5. Em **Público-alvo**, escolha **Externo** e adicione a conta remetente em **Usuários
+   de teste**.
+6. Em **Acesso a dados**, adicione somente o escopo
+   `https://www.googleapis.com/auth/gmail.send`.
+7. Em **Clientes**, crie um cliente OAuth do tipo **Desktop app** e baixe o JSON.
+8. Execute um fluxo OAuth local para aplicação nativa com `access_type=offline` e
+   `prompt=consent`. Faça login somente com a conta remetente e guarde o refresh token
+   localmente. Nunca envie o JSON, o client secret ou o refresh token para o repositório
+   ou para uma conversa.
+
+Na raiz do projeto, crie um arquivo `.env` local. Ele já é ignorado pelo Git:
+
+```env
+VERIFICACAO_EMAIL_GMAIL_ENABLED=true
+VERIFICACAO_EMAIL_GMAIL_CLIENT_ID=<client-id-do-json>
+VERIFICACAO_EMAIL_GMAIL_CLIENT_SECRET=<client-secret-do-json>
+VERIFICACAO_EMAIL_GMAIL_REFRESH_TOKEN=<refresh-token-gerado-localmente>
+VERIFICACAO_EMAIL_GMAIL_FROM=<conta-gmail-remetente>
+VERIFICACAO_EMAIL_DIGEST_SECRET=<segredo-aleatorio-longo>
+VERIFICACAO_EMAIL_GMAIL_CONNECT_TIMEOUT=PT10S
+VERIFICACAO_EMAIL_GMAIL_REQUEST_TIMEOUT=PT15S
+```
+
+Suba ou recrie o backend para carregar o arquivo:
+
+```bash
+docker compose up -d --force-recreate backend
+```
+
+O `docker-compose.yml` já mapeia essas variáveis para o container. Para verificar a
+configuração sem revelar segredos, confirme que o Gmail está habilitado e que os cinco
+valores sensíveis estão presentes no container. Não use `docker inspect` para imprimir
+o ambiente completo.
+
+### Colocar o aplicativo OAuth em produção
+
+O modo **Testando** é adequado para desenvolvimento, mas autorizações de usuários de
+teste podem expirar após sete dias, inclusive o refresh token de um fluxo offline.
+Para produção, faça o procedimento a seguir:
+
+1. Crie um projeto Google Cloud separado para produção. Mantenha projetos distintos para
+   desenvolvimento, homologação e produção.
+2. Ative a **Gmail API** no projeto de produção.
+3. Repita a configuração de **Branding**, **Público-alvo** e **Acesso a dados** usando
+   os dados reais do aplicativo.
+4. Confirme que o público está como **Externo** quando a conta remetente for pessoal
+   `@gmail.com`. O modo **Interno** só se aplica a uma organização Google Workspace.
+5. Crie um cliente OAuth de produção do tipo **Desktop app** e autorize novamente a conta
+   remetente. Gere um refresh token próprio para produção; não reutilize o token de
+   desenvolvimento.
+6. Em **Público-alvo**, conclua o Branding e clique em **Publicar app**. Confirme a
+   publicação como **Em produção**.
+7. Se o Google solicitar verificação, siga a **Central de verificação**. O escopo
+   `gmail.send` é classificado como sensível e pode exigir verificação para uso mais
+   amplo. Para uso pessoal limitado, o Google pode permitir continuar com o aviso de
+   aplicativo não verificado, mas isso não substitui a verificação caso o projeto cresça.
+8. Armazene o client secret, o refresh token e o segredo HMAC em Secret Manager, Vault
+   ou mecanismo equivalente. Não use um `.env` versionado em produção.
+9. Configure as mesmas variáveis de ambiente no serviço de produção e reinicie/recrie
+   o backend para que os valores sejam carregados.
+
+Para uma conta pessoal Gmail, mantenha o volume baixo e observe as cotas e as políticas
+de envio do Gmail. Para maior volume ou identidade institucional, prefira uma conta
+Google Workspace dedicada com domínio próprio.
 
 ### Teste manual e rotação
 
@@ -80,9 +151,13 @@ curl -X POST http://localhost:8080/verificacao-email/solicitar \
 ```
 
 Confirme o PIN recebido e execute o fluxo de submissão usando o `submissionToken` retornado.
+Uma resposta `202 Accepted` indica que a solicitação foi aceita e que o envio não retornou
+erro; a entrega final ainda deve ser conferida na caixa de entrada ou spam.
+
 Para rotacionar credenciais, revogue o cliente/token antigo no Google Cloud, gere novas
-credenciais, atualize o gerenciador de segredos e reinicie o serviço. O `VERIFICACAO_EMAIL_DIGEST_SECRET`
-também deve ser tratado como segredo de produção; sua troca invalida os digests existentes.
+credenciais, atualize o gerenciador de segredos e reinicie o serviço. O
+`VERIFICACAO_EMAIL_DIGEST_SECRET` também deve ser tratado como segredo de produção; sua
+troca invalida os digests existentes.
 
 ## 📋 Endpoints Disponíveis
 
