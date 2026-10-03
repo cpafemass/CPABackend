@@ -52,6 +52,12 @@ class VerificacaoEmailResourceTest {
                  "respondent":{"type":"professor","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
                 """.formatted(token)).when().post("/formulario").then().statusCode(200);
+
+        given().contentType("application/json").body("""
+                {"campaign":"cpa-2026", "form":"funcionario_gestao", "formVersion":1,
+                 "respondent":{"type":"funcionario","emailVerificationToken":"%s","aceiteTermosCondicoesServico":true},
+                 "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}
+                """.formatted(token)).when().post("/formulario").then().statusCode(400);
     }
 
     @Test

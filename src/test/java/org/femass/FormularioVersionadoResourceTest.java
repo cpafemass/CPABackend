@@ -71,8 +71,6 @@ class FormularioVersionadoResourceTest {
                   "formVersion": 1,
                   "respondent": {
                     "type": "professor",
-                    "cpf": "529.982.247-25",
-                    "matricula": "professor-versionado",
                     "aceiteTermosCondicoesServico": true
                   },
                   "course": {"name": "%s"},
@@ -110,16 +108,16 @@ class FormularioVersionadoResourceTest {
                   "campaign": "cpa-2026",
                   "form": "docente_disciplinas",
                   "formVersion": 1,
-                  "respondent": {"type": "professor", "cpf": "529.982.247-25", "matricula": "%s", "aceiteTermosCondicoesServico": true},
+                  "respondent": {"type": "professor", "aceiteTermosCondicoesServico": true},
                   "course": {"name": "%s"},
                   "subjects": [{"subjectId": "%d", "subjectName": "Disciplina versionada de teste", "teacherName": "Professor Teste", "answers": [{"questionId": "%s", "optionCode": "%s"}]}]
                 }
                 """;
 
-        given().contentType("application/json").body(base.formatted("versao-pergunta", nomeCurso, disciplinaId, "q99", "concordo_totalmente"))
+        given().contentType("application/json").body(base.formatted(nomeCurso, disciplinaId, "q99", "concordo_totalmente"))
                 .when().post("/formulario").then().statusCode(400);
 
-        given().contentType("application/json").body(base.formatted("versao-opcao", nomeCurso, disciplinaId, "q1", "opcao-inexistente"))
+        given().contentType("application/json").body(base.formatted(nomeCurso, disciplinaId, "q1", "opcao-inexistente"))
                 .when().post("/formulario").then().statusCode(400);
     }
 }

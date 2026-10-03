@@ -13,7 +13,6 @@ import org.femass.dto.ErrorResponseDTO;
 import org.femass.dto.FormularioDTO;
 import org.femass.dto.QRCodeResponseDTO;
 import org.femass.entity.Validacao;
-import org.femass.exception.CPFInvalidoException;
 import org.femass.exception.InvalidFormularioException;
 import org.femass.service.FormularioService;
 
@@ -31,7 +30,7 @@ public class FormularioResource {
         try {
             Validacao validacao = formularioService.salvarEGerarHash(formularioDTO);
             return Response.ok(new QRCodeResponseDTO(validacao.getCodigoValidacao(), validacao.getCodigoValidacao())).build();
-        } catch (IllegalArgumentException | CPFInvalidoException | InvalidFormularioException e) {
+        } catch (IllegalArgumentException | InvalidFormularioException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponseDTO(e.getMessage()))
                     .build();
