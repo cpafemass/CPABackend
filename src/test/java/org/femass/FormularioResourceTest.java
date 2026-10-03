@@ -48,9 +48,9 @@ class FormularioResourceTest {
     }
 
     @Test
-    void deveRejeitarPayloadLegado() {
+    void deveRejeitarPayloadSemMetadadosDoFormulario() {
         given().contentType("application/json").body("""
-                {"respondent":{"type":"aluno","cpf":"529.982.247-25","matricula":"legado","aceiteTermosCondicoesServico":true}}
+                {"respondent":{"type":"aluno","aceiteTermosCondicoesServico":true}}
                 """).when().post("/formulario").then().statusCode(400);
     }
 
@@ -59,7 +59,7 @@ class FormularioResourceTest {
         String formulario = """
                 {
                   "campaign":"cpa-2026", "form":"discente_disciplinas", "formVersion":1,
-                  "respondent":{"type":"aluno","cpf":"529.982.247-25","matricula":"discente-2026","aceiteTermosCondicoesServico":true},
+                  "respondent":{"type":"aluno","aceiteTermosCondicoesServico":true},
                   "course":{"name":"%s"},
                   "subjects":[{"subjectId":"%d","answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]}]
                 }
@@ -74,12 +74,29 @@ class FormularioResourceTest {
         given().contentType("application/json").body("""
                 {
                   "campaign":"cpa-2026", "form":"funcionario_gestao", "formVersion":1,
-                  "respondent":{"type":"funcionario","cpf":"529.982.247-25","matricula":"funcionario-2026","aceiteTermosCondicoesServico":true},
+                  "respondent":{"type":"funcionario","aceiteTermosCondicoesServico":true},
                   "answers":[{"questionId":"q1","optionCode":"nao_sei_responder"}]
                 }
                 """).when().post("/formulario").then().statusCode(200);
 
         given().queryParam("publico", "funcionario").when().get("/avaliacoes")
                 .then().statusCode(200).body("find { it.naoSeiResponder }.disciplina", org.hamcrest.Matchers.nullValue());
+    }
+
+    @Test
+    void deveDescartarIdentificadoresLegadosDoAluno() {
+        given().contentType("application/json").body("""
+                {
+                  "campaign":"cpa-2026", "form":"discente_gestao", "formVersion":1,
+                  "respondent":{
+                    "type":"aluno",
+                    "aceiteTermosCondicoesServico":true,
+                    "cpf":"529.982.247-25",
+                    "matricula":"legado",
+                    "email":"aluno@femass.edu.br"
+                  },
+                  "answers":[{"questionId":"q1","optionCode":"concordo_totalmente"}]
+                }
+                """).when().post("/formulario").then().statusCode(200);
     }
 }

@@ -16,7 +16,6 @@ import org.femass.entity.Resposta;
 import org.femass.entity.EscopoFormulario;
 
 import org.femass.entity.Validacao;
-import org.femass.exception.CPFInvalidoException;
 import org.femass.repository.AvaliacaoRepository;
 import org.femass.repository.CursoRepository;
 import org.femass.repository.DisciplinaRepository;
@@ -26,7 +25,6 @@ import org.femass.repository.OpcaoPerguntaRepository;
 import org.femass.entity.FormularioVersao;
 import org.femass.entity.PerguntaVersao;
 import org.femass.entity.OpcaoPergunta;
-import org.femass.util.ValidacaoCPFUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,9 +76,6 @@ public class FormularioService {
     private void salvarFormulario(FormularioDTO formularioDTO) {
         validarFormulario(formularioDTO);
         PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
-        if (publico == PublicoAvaliacao.ALUNO) {
-            validaCPF(formularioDTO);
-        }
         verificacaoEmailService.consumirAutorizacaoParaEnvio(
                 formularioDTO.respondent.emailVerificationToken,
                 publico,
@@ -109,18 +104,7 @@ public class FormularioService {
             throw new IllegalArgumentException("Dados do respondente sao obrigatorios");
         }
 
-        PublicoAvaliacao publico = PublicoAvaliacao.from(formularioDTO.respondent.type);
-        if (publico == PublicoAvaliacao.ALUNO) {
-            if (formularioDTO.respondent.cpf == null || formularioDTO.respondent.cpf.isBlank()) {
-                throw new IllegalArgumentException("CPF do respondente e obrigatorio");
-            }
-            if (apenasDigitos(formularioDTO.respondent.cpf).length() < 4) {
-                throw new IllegalArgumentException("CPF do respondente deve ter ao menos 4 digitos");
-            }
-            if (formularioDTO.respondent.matricula == null || formularioDTO.respondent.matricula.isBlank()) {
-                throw new IllegalArgumentException("Matricula do respondente e obrigatoria");
-            }
-        }
+        PublicoAvaliacao.from(formularioDTO.respondent.type);
 
         if (!Boolean.TRUE.equals(formularioDTO.respondent.aceiteTermosCondicoesServico)) {
             throw new IllegalArgumentException("Aceite dos termos e condicoes de servico e obrigatorio");
@@ -181,21 +165,6 @@ public class FormularioService {
         if (limpo.length() > 1000) throw new IllegalArgumentException("Comentario deve ter no maximo 1000 caracteres");
         return limpo;
     }
-     private void validaCPF(FormularioDTO formularioDTO) {
-        // Validar CPF do respondente
-         if (formularioDTO.respondent == null) {
-             throw new CPFInvalidoException("Respondente não pode ser nulo");
-         }
-
-         if (formularioDTO.respondent.cpf == null || formularioDTO.respondent.cpf.isBlank()) {
-             throw new CPFInvalidoException("CPF do respondente não pode ser vazio");
-         }
-
-         if (!ValidacaoCPFUtil.validarCPF(formularioDTO.respondent.cpf)) {
-             throw new CPFInvalidoException("CPF invalido");
-         }
-     }
-
     private void salvarPorDisciplina(FormularioDTO dto, PublicoAvaliacao publico, FormularioVersao versao) {
         if (dto.course == null || dto.course.name == null || dto.course.name.isBlank())
             throw new IllegalArgumentException("Curso e obrigatorio para este formulario");
@@ -236,13 +205,5 @@ public class FormularioService {
         }
         avaliacao.setRespostas(respostas);
         avaliacaoRepository.persist(avaliacao);
-    }
-
-    private String primeirosQuatroDigitosCpf(String cpf) {
-        return apenasDigitos(cpf).substring(0, 4);
-    }
-
-    private String apenasDigitos(String valor) {
-        return valor.replaceAll("\\D", "");
     }
 }
