@@ -119,13 +119,13 @@ public class VerificacaoEmailService {
         if (verificacao == null || verificacao.getStatus() != StatusVerificacaoEmail.VERIFICADO
                 || !verificacao.getAutorizacaoExpiraEm().isAfter(LocalDateTime.now())
                 || verificacao.getPublico() != publico
-                || !verificacao.getCampanha().equals(campanha)
-                || !verificacao.getFormulario().equals(formulario)
-                || !verificacao.getVersaoFormulario().equals(versao)) {
+                || !verificacao.getCampanha().equals(campanha)) {
             throw new IllegalArgumentException("Verificacao de e-mail invalida ou expirada");
         }
-        verificacao.setStatus(StatusVerificacaoEmail.CONSUMIDO);
-        verificacao.setConsumidoEm(LocalDateTime.now());
+        // A autorização é vinculada ao público e à campanha, não a um formulário
+        // individual. Isso permite concluir a jornada prevista (por exemplo,
+        // disciplinas, gestão e instituição) sem solicitar outro PIN. A versão e
+        // o formulário continuam validados por FormularioService ao salvar.
     }
 
     private DadosSolicitacao validarSolicitacao(SolicitarVerificacaoEmailDTO dto) {
