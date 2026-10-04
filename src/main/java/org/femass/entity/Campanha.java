@@ -21,6 +21,9 @@ public class Campanha {
     @Column(nullable = false, length = 20)
     private EstadoCampanha estado = EstadoCampanha.RASCUNHO;
 
+    @Column(name = "mensagem_disponibilidade", length = 500)
+    private String mensagemDisponibilidade;
+
     public Long getId() { return id; }
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
