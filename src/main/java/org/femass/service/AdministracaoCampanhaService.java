@@ -18,11 +18,11 @@ public class AdministracaoCampanhaService {
     @Inject OpcaoPerguntaRepository opcaoRepository;
 
     @Transactional
-    public Campanha criarCampanha(String codigo, String nome) {
+    public Campanha criarCampanha(String codigo, String nome, String mensagem) {
         if (codigo == null || codigo.isBlank() || nome == null || nome.isBlank()) throw new IllegalArgumentException("Codigo e nome da campanha sao obrigatorios");
         if (campanhaRepository.findByCodigo(codigo) != null) throw new IllegalArgumentException("Codigo de campanha ja existe");
         Campanha campanha = new Campanha();
-        campanha.setCodigo(codigo); campanha.setNome(nome); campanha.setEstado(EstadoCampanha.RASCUNHO);
+        campanha.setCodigo(codigo); campanha.setNome(nome); campanha.setEstado(EstadoCampanha.RASCUNHO); campanha.setMensagemDisponibilidade(mensagem);
         campanhaRepository.persist(campanha);
         return campanha;
     }
