@@ -30,4 +30,6 @@ public class Campanha {
     public void setAtiva(boolean ativa) { this.ativa = ativa; }
     public EstadoCampanha getEstado() { return estado; }
     public void setEstado(EstadoCampanha estado) { this.estado = estado; }
+    public String getMensagemDisponibilidade() { return mensagemDisponibilidade; }
+    public void setMensagemDisponibilidade(String mensagemDisponibilidade) { this.mensagemDisponibilidade = mensagemDisponibilidade; }
 }
