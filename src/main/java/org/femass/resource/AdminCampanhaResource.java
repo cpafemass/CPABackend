@@ -22,7 +22,7 @@ public class AdminCampanhaResource {
 
     @POST
     public Response criar(AdminCampanhaDTO dto) {
-        try { Campanha campanha = service.criarCampanha(dto.codigo, dto.nome); return Response.status(Response.Status.CREATED).entity(campanha).build(); }
+        try { Campanha campanha = service.criarCampanha(dto.codigo, dto.nome, dto.mensagem); return Response.status(Response.Status.CREATED).entity(campanha).build(); }
         catch (IllegalArgumentException e) { return erro(e); }
     }
 

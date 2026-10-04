@@ -21,6 +21,9 @@ public class Campanha {
     @Column(nullable = false, length = 20)
     private EstadoCampanha estado = EstadoCampanha.RASCUNHO;
 
+    @Column(name = "mensagem_disponibilidade", length = 500)
+    private String mensagemDisponibilidade;
+
     public Long getId() { return id; }
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
@@ -30,4 +33,6 @@ public class Campanha {
     public void setAtiva(boolean ativa) { this.ativa = ativa; }
     public EstadoCampanha getEstado() { return estado; }
     public void setEstado(EstadoCampanha estado) { this.estado = estado; }
+    public String getMensagemDisponibilidade() { return mensagemDisponibilidade; }
+    public void setMensagemDisponibilidade(String mensagemDisponibilidade) { this.mensagemDisponibilidade = mensagemDisponibilidade; }
 }
