@@ -129,7 +129,7 @@ public class VerificacaoEmailService {
     }
 
     private DadosSolicitacao validarSolicitacao(SolicitarVerificacaoEmailDTO dto) {
-        if (dto == null || dto.email == null || !dto.email.matches("^[A-Za-z0-9._%+-]+@femass\\.edu\\.br$")) {
+        if (dto == null || dto.email == null || !dto.email.matches("^[A-Za-z._%+-]+@femass\\.edu\\.br$")) {
             throw new IllegalArgumentException("E-mail institucional invalido");
         }
         PublicoAvaliacao publico = PublicoAvaliacao.from(dto.publico);
