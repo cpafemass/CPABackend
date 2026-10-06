@@ -13,6 +13,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -65,6 +66,15 @@ class VerificacaoEmailResourceTest {
         given().contentType("application/json").body("""
                 {"email":"pessoa@gmail.com","publico":"funcionario","campaign":"cpa-2026","form":"funcionario_gestao","formVersion":1}
                 """).when().post("/verificacao-email/solicitar").then().statusCode(400);
+    }
+
+    @Test
+    void deveRejeitarMatriculaComoEmailInstitucionalSemEnviarPin() {
+        given().contentType("application/json").body("""
+                {"email":"2301130025@femass.edu.br","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}
+                """).when().post("/verificacao-email/solicitar").then().statusCode(400);
+
+        verify(emailSender, never()).enviarPin(anyString(), anyString());
     }
 
     @Test
