@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ValidacaoDigestResourceTest {
-    private static final String DIGEST = "a".repeat(54) + "012345bcde";
+    private static final String DIGEST = "aaaaaaaa-aaaa-aaaa-aaaa-aa012345bcde";
 
     @Test
     void validacaoRetornaSomenteOsDezUltimosCaracteresDoDigestArmazenado() throws Exception {
@@ -36,7 +36,7 @@ class ValidacaoDigestResourceTest {
     void historicoRetornaOSufixoDeCadaRegistroNaOrdemDoServico() throws Exception {
         ValidacaoResource resource = resource();
         when(resource.service.buscarDezUltimosCodigosValidados()).thenReturn(List.of(
-            validacao(DIGEST), validacao("b".repeat(54) + "00000000af")));
+            validacao(DIGEST), validacao("bbbbbbbb-bbbb-bbbb-bbbb-bb00000000af")));
 
         try (var response = resource.historico()) {
             assertEquals(200, response.getStatus());
@@ -46,7 +46,7 @@ class ValidacaoDigestResourceTest {
                 results.stream().map(ValidacaoStatusDTO::getCodigoDigestFinal).toList());
             String json = new ObjectMapper().writeValueAsString(results);
             assertFalse(json.contains(DIGEST));
-            assertFalse(json.contains("b".repeat(54)));
+            assertFalse(json.contains("bbbbbbbb-bbbb-bbbb-bbbb"));
         }
     }
 

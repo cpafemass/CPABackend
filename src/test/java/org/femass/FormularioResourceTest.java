@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HexFormat;
+import java.nio.ByteBuffer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -74,9 +74,9 @@ class FormularioResourceTest {
                 .when().post("/formulario").then().statusCode(200).body("codigoValidacao", notNullValue())
                 .extract().as(Map.class);
         String codigo = comprovante.get("codigoValidacao");
-        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
-        String identificador = digest.substring(digest.length() - 10);
+        ByteBuffer bytes = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        UUID digest = new UUID(bytes.getLong(), bytes.getLong());
+        String identificador = digest.toString().substring(26);
         assertEquals(codigo, comprovante.get("qrCode"));
         assertEquals(identificador, comprovante.get("codigoDigestFinal"));
         assertFalse(comprovante.containsKey("codigoDigest"));

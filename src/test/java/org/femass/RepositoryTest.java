@@ -24,6 +24,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @QuarkusTest
 class RepositoryTest {
@@ -77,17 +79,37 @@ class RepositoryTest {
     @Transactional
     void deveConsultarValidacaoComDigestLockEHistorico() {
         Validacao validacao = new Validacao();
-        validacao.setCodigoDigest(UUID.randomUUID().toString().replace("-", ""));
+        validacao.setNewHash(UUID.randomUUID());
         validacao.setExpiraEm(LocalDateTime.now().plusDays(1));
         validacao.setValidado(true);
         validacao.setDataValidacao(LocalDateTime.now());
 
         validacaoRepository.persistAndFlush(validacao);
 
-        assertSame(validacao, validacaoRepository.findByCodigoDigest(validacao.getCodigoDigest()));
-        assertSame(validacao, validacaoRepository.findByCodigoDigestForUpdate(validacao.getCodigoDigest()));
+        assertSame(validacao, validacaoRepository.findByCodigoDigest(validacao.getNewHash()));
+        assertSame(validacao, validacaoRepository.findByCodigoDigestForUpdate(validacao.getNewHash()));
         assertEquals(1, validacaoRepository.findLastValidated(10).stream()
                 .filter(item -> item.getId().equals(validacao.getId()))
                 .count());
+    }
+
+    @Test
+    @io.quarkus.test.TestTransaction
+    void devePreservarTokensLegadosEAceitarNullEVazioSemExibirNoHistorico() {
+        for (String token : new String[] { "token-legado", "", null }) {
+            Validacao legado = new Validacao();
+            legado.setOldToken(token);
+            legado.setExpiraEm(LocalDateTime.now().plusDays(1));
+            legado.setValidado(true);
+            legado.setDataValidacao(LocalDateTime.now());
+            validacaoRepository.persistAndFlush(legado);
+
+            validacaoRepository.getEntityManager().clear();
+            Validacao armazenado = validacaoRepository.findById(legado.getId());
+            assertEquals(token, armazenado.getOldToken());
+            assertNull(armazenado.getNewHash());
+            assertFalse(validacaoRepository.findLastValidated(10).stream()
+                    .anyMatch(item -> item.getId().equals(legado.getId())));
+        }
     }
 }

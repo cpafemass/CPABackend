@@ -12,8 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.HexFormat;
+import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.UUID;
 
 @QuarkusTest
 class QRCodeResourceTest {
@@ -50,12 +51,12 @@ class QRCodeResourceTest {
 
         org.hamcrest.MatcherAssert.assertThat(qrCode, org.hamcrest.Matchers.matchesPattern("[A-Za-z0-9_-]{22}"));
         assertNotEquals(codigoValidacao, segundoCodigo);
-        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(codigoValidacao.getBytes(StandardCharsets.UTF_8)));
-        Validacao validacao = Validacao.find("codigoDigest", digest).firstResult();
+        ByteBuffer bytes = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(codigoValidacao.getBytes(StandardCharsets.UTF_8)));
+        UUID digest = new UUID(bytes.getLong(), bytes.getLong());
+        Validacao validacao = Validacao.find("newHash", digest).firstResult();
         assertNotNull(validacao);
-        org.hamcrest.MatcherAssert.assertThat(digest, org.hamcrest.Matchers.matchesPattern("[0-9a-f]{64}"));
-        org.hamcrest.MatcherAssert.assertThat(digest, not(org.hamcrest.Matchers.equalTo(qrCode)));
+        org.hamcrest.MatcherAssert.assertThat(digest.toString(), org.hamcrest.Matchers.matchesPattern("[0-9a-f-]{36}"));
+        org.hamcrest.MatcherAssert.assertThat(digest.toString(), not(org.hamcrest.Matchers.equalTo(qrCode)));
     }
 
     @Test

@@ -6,22 +6,23 @@ import jakarta.persistence.LockModeType;
 import org.femass.entity.Validacao;
 
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ValidacaoRepository implements PanacheRepositoryBase<Validacao, Long> {
 
-    public Validacao findByCodigoDigest(String digest) {
-        return find("codigoDigest", digest).firstResult();
+    public Validacao findByCodigoDigest(UUID digest) {
+        return find("newHash", digest).firstResult();
     }
 
-    public Validacao findByCodigoDigestForUpdate(String digest) {
-        return find("codigoDigest", digest)
+    public Validacao findByCodigoDigestForUpdate(UUID digest) {
+        return find("newHash", digest)
                 .withLock(LockModeType.PESSIMISTIC_WRITE)
                 .firstResult();
     }
 
     public List<Validacao> findLastValidated(int limit) {
-        return find("validado = true and dataValidacao is not null order by dataValidacao desc")
+        return find("validado = true and newHash is not null and dataValidacao is not null order by dataValidacao desc")
                 .range(0, Math.max(0, limit - 1))
                 .list();
     }

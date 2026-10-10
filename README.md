@@ -2,10 +2,10 @@
 
 Sistema backend em **Quarkus** que gera códigos opacos de validação para QR Codes.
 O código entregue ao cliente é um segredo aleatório de 128 bits, gerado com `SecureRandom`.
-O banco armazena somente o digest SHA-256 e nunca o código original ou dados pessoais.
+Novos códigos armazenam em `NEW_HASH` (UUID) os primeiros 128 bits do SHA-256 do segredo. OLD_TOKEN preserva os tokens legados, aceita NULL e string vazia, e não participa da validação.
 
 Após uma validação bem-sucedida, `PUT /validacao/validar-hash` retorna também
-`codigoDigestFinal`: os 10 últimos caracteres de `CODIGO_DIGEST` do registro validado.
+`codigoDigestFinal`: os 10 últimos caracteres de `NEW_HASH` do registro validado.
 `GET /validacao/historico` inclui o mesmo campo em cada uma das 10 últimas validações,
 ordenadas pela data de validação, da mais recente para a mais antiga. O digest é
 hexadecimal, então esse identificador pode conter números e letras de `a` a `f`,
@@ -261,7 +261,7 @@ Content-Type: application/json
 }
 ```
 
-O banco persiste apenas `codigoDigest`, o SHA-256 do segredo. O segredo `codigoValidacao`
+O banco persiste em `NEW_HASH` um UUID com os primeiros 128 bits do SHA-256 do segredo. O segredo `codigoValidacao`
 nunca é recuperável pelo banco após a geração.
 
 ### 2. Validar código
@@ -375,7 +375,7 @@ export QUARKUS_DATASOURCE_PASSWORD=sua-senha
 ```java
 @Entity
 public class Validacao extends PanacheEntity {
-    private String codigoDigest;             // SHA-256 do código, nunca o segredo
+    private UUID newHash;                    // primeiros 128 bits do SHA-256 do código
     private Boolean validado;               // true/false
     private LocalDateTime dataCriacao;      // Quando foi criado
     private LocalDateTime expiraEm;         // Prazo configurável
@@ -504,17 +504,19 @@ cpa-backend/
 # Códigos de validação
 
 Os códigos entregues pelo QR Code são segredos opacos de 128 bits, gerados por `SecureRandom`.
-O código não contém CPF, matrícula, curso ou disciplinas. O banco armazena somente o digest
-SHA-256 do segredo; por isso não existe endpoint de decodificação nem recuperação do código.
-Cada código é de uso único. Códigos criados antes da migração são invalidados pela migration V4.
+O código não contém CPF, matrícula, curso ou disciplinas. Novos registros armazenam em
+`NEW_HASH` um UUID com os primeiros 128 bits do SHA-256 do segredo; não existe endpoint
+de decodificação nem recuperação do código. Cada código é de uso único. A V4 preserva
+os tokens legados em `OLD_TOKEN`, mas eles não participam da validação ou do histórico.
 
 ### Migração da chave primária de `VALIDACAO`
 
-A migration V6 adiciona `ID` como chave primária técnica identity e mantém
-`CODIGO_DIGEST` como chave de negócio com índice `UNIQUE`. Ela é compatível com
-bancos que já executaram V1–V5 e não deve ser editada após aplicada.
+A migration V6 adiciona `ID` como chave primária técnica identity e define
+`NEW_HASH` como chave de negócio com índice `UNIQUE`. `NEW_HASH` aceita NULL para
+preservar registros legados; o backend sempre preenche o UUID de novos códigos.
+V4–V6 foram revisadas: bancos que aplicaram as versões anteriores precisam ser
+recriados para executar esta sequência, pois os checksums do Flyway mudaram.
 
 Em caso de rollback, faça backup e confirme que não existem FKs dependentes;
-depois aplique uma migration corretiva que remova a PK técnica e restaure
-temporariamente a PK em `CODIGO_DIGEST`. O tratamento de códigos legados
-continua sendo responsabilidade da migration V4, conforme a issue #2.
+depois aplique uma migration corretiva compatível com os registros legados,
+que têm `NEW_HASH` nulo. `OLD_TOKEN` não deve voltar a ser usado na validação.

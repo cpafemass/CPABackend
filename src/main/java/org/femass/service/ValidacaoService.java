@@ -10,7 +10,8 @@ import org.femass.repository.ValidacaoRepository;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HexFormat;
+import java.nio.ByteBuffer;
+import java.util.UUID;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -35,14 +36,14 @@ public class ValidacaoService {
             throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
         }
 
-        String digest = calcularDigest(codigoValidacao);
+        UUID digest = calcularDigest(codigoValidacao);
         Validacao validacaoExistente = validacaoRepository.findByCodigoDigest(digest);
         if (validacaoExistente != null) {
             return validacaoExistente;
         }
 
         Validacao validacao = new Validacao();
-        validacao.setCodigoDigest(digest);
+        validacao.setNewHash(digest);
         validacao.setValidado(false);
         validacao.setExpiraEm(LocalDateTime.now().plus(codigoExpiracao));
         validacao.setAceiteTermosCondicoesServico(Boolean.TRUE.equals(aceiteTermosCondicoesServico));
@@ -117,9 +118,14 @@ public class ValidacaoService {
 
         return validacao;
     }
-    private String calcularDigest(String codigo) {
+    private UUID calcularDigest(String codigo) {
         if (codigo == null || codigo.isBlank()) throw new IllegalArgumentException("Codigo de validacao e obrigatorio");
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8))); }
+        // UUID armazena os primeiros 128 bits do SHA-256, sem persistir o segredo.
+        try {
+            ByteBuffer digest = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256")
+                    .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+            return new UUID(digest.getLong(), digest.getLong());
+        }
         catch (Exception e) { throw new IllegalStateException("Nao foi possivel processar o codigo"); }
     }
     public List<Validacao> buscarDezUltimosCodigosValidados(){
