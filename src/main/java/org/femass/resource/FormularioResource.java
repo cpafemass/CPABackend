@@ -29,7 +29,9 @@ public class FormularioResource {
     public Response PostFormulario(FormularioDTO formularioDTO) {
         try {
             Validacao validacao = formularioService.salvarEGerarHash(formularioDTO);
-            return Response.ok(new QRCodeResponseDTO(validacao.getCodigoValidacao(), validacao.getCodigoValidacao())).build();
+            String digest = validacao.getCodigoDigest();
+            return Response.ok(new QRCodeResponseDTO(validacao.getCodigoValidacao(), validacao.getCodigoValidacao(),
+                digest.substring(digest.length() - 10))).build();
         } catch (IllegalArgumentException | InvalidFormularioException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponseDTO(e.getMessage()))
