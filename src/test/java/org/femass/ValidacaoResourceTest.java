@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
-import java.util.HexFormat;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
@@ -35,17 +35,18 @@ class ValidacaoResourceTest {
     @Transactional
     void deveUsarIdTecnicoEManterDigestUnico() throws Exception {
         String codigo = "codigo-tecnico-" + UUID.randomUUID();
-        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        ByteBuffer bytes = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        UUID digest = new UUID(bytes.getLong(), bytes.getLong());
 
         Validacao primeira = validacaoService.armazenarCodigoValidacao(codigo, true);
         Validacao segunda = validacaoService.armazenarCodigoValidacao(codigo, true);
 
         assertNotNull(primeira.getId());
         assertEquals(primeira.getId(), segunda.getId());
-        assertEquals(64, primeira.getCodigoDigest().length());
-        assertEquals(digest, primeira.getCodigoDigest());
-        assertEquals(1L, Validacao.count("codigoDigest", digest));
+        assertEquals(36, primeira.getCodigoDigest().length());
+        assertNull(primeira.getOldToken());
+        assertEquals(digest, primeira.getNewHash());
+        assertEquals(1L, Validacao.count("newHash", digest));
     }
     @Test
     void deveValidarCodigoOpacoSemRetornarDadosPessoais() throws Exception {
@@ -75,9 +76,9 @@ class ValidacaoResourceTest {
         assertFalse(resposta.containsKey("curso"));
         assertFalse(resposta.containsKey("disciplinas"));
         assertFalse(resposta.containsKey("hash"));
-        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-            .digest(codigo.getBytes(StandardCharsets.UTF_8)));
-        String identificador = digest.substring(digest.length() - 10);
+        ByteBuffer bytes = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        UUID digest = new UUID(bytes.getLong(), bytes.getLong());
+        String identificador = digest.toString().substring(26);
         assertEquals(identificador, resposta.get("codigoDigestFinal"));
         assertFalse(resposta.containsKey("codigoDigest"));
 
@@ -127,9 +128,9 @@ class ValidacaoResourceTest {
                 .when().post("/qrcode/gerar")
                 .then().statusCode(200).extract().path("codigoValidacao");
 
-        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
-        Validacao validacao = Validacao.find("codigoDigest", digest).firstResult();
+        ByteBuffer bytes = ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        UUID digest = new UUID(bytes.getLong(), bytes.getLong());
+        Validacao validacao = Validacao.find("newHash", digest).firstResult();
         validacao.setExpiraEm(LocalDateTime.now().minusMinutes(1));
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import java.util.UUID;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,12 +25,12 @@ class ValidacaoServiceTest {
 
     @Test
     void deveDelegarBuscaEPersistenciaAoRepository() {
-        when(validacaoRepository.findByCodigoDigest(anyString())).thenReturn(null);
+        when(validacaoRepository.findByCodigoDigest(any(UUID.class))).thenReturn(null);
 
         Validacao validacao = validacaoService.armazenarCodigoValidacao("codigo-unitario", true);
 
         assertNotNull(validacao);
-        verify(validacaoRepository).findByCodigoDigest(anyString());
+        verify(validacaoRepository).findByCodigoDigest(any(UUID.class));
         verify(validacaoRepository).persist(any(Validacao.class));
     }
 }

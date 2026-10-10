@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Entity
@@ -17,8 +18,11 @@ public class Validacao extends PanacheEntityBase {
     @Column(name = "ID", nullable = false)
     private Long id;
 
-    @Column(name = "CODIGO_DIGEST", length = 64, nullable = false, unique = true)
-    private String codigoDigest;
+    @Column(name = "NEW_HASH", unique = true)
+    private UUID newHash;
+
+    @Column(name = "OLD_TOKEN", length = 512)
+    private String oldToken;
 
     @Column(name = "VALIDADO", nullable = false)
     private Boolean validado;
@@ -55,12 +59,17 @@ public class Validacao extends PanacheEntityBase {
     }
 
     public String getCodigoDigest() {
-        return codigoDigest;
+        return newHash == null ? null : newHash.toString();
     }
 
     public void setCodigoDigest(String codigoDigest) {
-        this.codigoDigest = codigoDigest;
+        this.newHash = codigoDigest == null ? null : UUID.fromString(codigoDigest);
     }
+
+    public UUID getNewHash() { return newHash; }
+    public void setNewHash(UUID newHash) { this.newHash = newHash; }
+    public String getOldToken() { return oldToken; }
+    public void setOldToken(String oldToken) { this.oldToken = oldToken; }
 
     public Long getId() {
         return id;
@@ -76,12 +85,12 @@ public class Validacao extends PanacheEntityBase {
     /** Compatibilidade binária temporária; não deve ser exposto em respostas. */
     @Deprecated
     public String getHash() {
-        return codigoDigest;
+        return getCodigoDigest();
     }
 
     @Deprecated
     public void setHash(String hash) {
-        this.codigoDigest = hash;
+        setCodigoDigest(hash);
     }
 
     public Boolean getValidado() {

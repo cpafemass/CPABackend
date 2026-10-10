@@ -12,8 +12,8 @@ ALTER TABLE VALIDACAO
     ADD CONSTRAINT PK_VALIDACAO_ID PRIMARY KEY (ID);
 
 ALTER TABLE VALIDACAO
-    ADD CONSTRAINT UK_VALIDACAO_CODIGO_DIGEST UNIQUE (CODIGO_DIGEST);
+    ADD CONSTRAINT UK_VALIDACAO_NEW_HASH UNIQUE (NEW_HASH);
 
 -- Rollback operacional: com backup e após confirmar que não existem FKs
 -- dependentes, uma migration corretiva pode remover PK_VALIDACAO_ID/ID e
--- restaurar CODIGO_DIGEST como PK. Não editar esta migration após aplicada.
+-- restaurar uma chave de negócio como PK. Não editar esta migration após aplicada.

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class FormularioDigestResourceTest {
     @Test
     void comprovanteRetornaOSufixoDoDigestSemAlterarOConteudoDoQRCode() throws Exception {
-        String digest = "a".repeat(54) + "000000abcf";
+        String digest = "aaaaaaaa-aaaa-aaaa-aaaa-aa000000abcf";
         var validacao = new Validacao();
         validacao.setCodigoDigest(digest);
         validacao.setCodigoValidacao("codigo-opaco");

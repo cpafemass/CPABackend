@@ -24,7 +24,7 @@ class VerificacaoEmailResourceTest {
 
     @Test
     void deveAutorizarTodosOsFormulariosDaJornadaDoProfessor() {
-        String email = "professor-" + UUID.randomUUID() + "@femass.edu.br";
+        String email = "professor-" + UUID.randomUUID().toString().replaceAll("[0-9]", "a") + "@femass.edu.br";
         Number verificationId = given().contentType("application/json").body("""
                 {"email":"%s","publico":"professor","campaign":"cpa-2026","form":"docente_gestao","formVersion":1}
                 """.formatted(email)).when().post("/verificacao-email/solicitar")
@@ -79,7 +79,7 @@ class VerificacaoEmailResourceTest {
 
     @Test
     void reenvioInvalidaPinAnterior() {
-        String email = "reenvio-" + UUID.randomUUID() + "@femass.edu.br";
+        String email = "reenvio-" + UUID.randomUUID().toString().replaceAll("[0-9]", "a") + "@femass.edu.br";
         String request = """
                 {"email":"%s","publico":"funcionario","campaign":"cpa-2026","form":"funcionario_gestao","formVersion":1}
                 """.formatted(email);
