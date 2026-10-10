@@ -47,8 +47,9 @@ public class ValidacaoResource {
 
 
         try {
-            service.validarCodigo(codigo);
-            return Response.ok(new ValidacaoStatusDTO(codigo, true, "VALIDADO", "Codigo validado com sucesso"), MediaType.APPLICATION_JSON).build();
+            Validacao validacao = service.validarCodigo(codigo);
+            return Response.ok(new ValidacaoStatusDTO(codigo, true, "VALIDADO", "Codigo validado com sucesso",
+                codigoDigestFinal(validacao)), MediaType.APPLICATION_JSON).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(new ErrorResponseDTO(e.getMessage()))
@@ -194,7 +195,8 @@ public class ValidacaoResource {
     public Response historico() {
        try{
            List<Validacao> historico = service.buscarDezUltimosCodigosValidados();
-           return Response.ok(historico.stream().map(v -> new ValidacaoStatusDTO("codigo", true, "VALIDADO", "Codigo validado")).toList(), MediaType.APPLICATION_JSON).build();
+           return Response.ok(historico.stream().map(v -> new ValidacaoStatusDTO("codigo", true, "VALIDADO", "Codigo validado",
+               codigoDigestFinal(v))).toList(), MediaType.APPLICATION_JSON).build();
        }catch (IllegalArgumentException e) {
            return Response.status(Response.Status.NOT_FOUND)
                    .entity(new ErrorResponseDTO(e.getMessage()))
@@ -206,6 +208,8 @@ public class ValidacaoResource {
        }
 
     }
-
-
+    private String codigoDigestFinal(Validacao validacao) {
+        String digest = validacao.getCodigoDigest();
+        return digest.substring(digest.length() - 10);
+    }
 }

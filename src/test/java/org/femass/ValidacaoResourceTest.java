@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -47,7 +48,7 @@ class ValidacaoResourceTest {
         assertEquals(1L, Validacao.count("codigoDigest", digest));
     }
     @Test
-    void deveValidarCodigoOpacoSemRetornarDadosPessoais() {
+    void deveValidarCodigoOpacoSemRetornarDadosPessoais() throws Exception {
         String codigo = given()
                 .contentType("application/json")
                 .body("""
@@ -74,6 +75,18 @@ class ValidacaoResourceTest {
         assertFalse(resposta.containsKey("curso"));
         assertFalse(resposta.containsKey("disciplinas"));
         assertFalse(resposta.containsKey("hash"));
+        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+            .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        String identificador = digest.substring(digest.length() - 10);
+        assertEquals(identificador, resposta.get("codigoDigestFinal"));
+        assertFalse(resposta.containsKey("codigoDigest"));
+
+        List<Map<String, Object>> historico = given()
+            .when().get("/validacao/historico")
+            .then().statusCode(200).extract().as(List.class);
+        assertTrue(historico.size() <= 10);
+        assertTrue(historico.stream().anyMatch(item -> identificador.equals(item.get("codigoDigestFinal"))));
+        assertTrue(historico.stream().allMatch(item -> !item.containsKey("codigoDigest")));
     }
 
     @Test

@@ -5,6 +5,7 @@ public class ValidacaoStatusDTO {
     private Boolean validado;
     private String status;
     private String mensagem;
+    private String codigoDigestFinal;
 
     public ValidacaoStatusDTO(String codigoValidacao, Boolean validado, String status, String mensagem) {
         this.codigoValidacao = codigoValidacao;
@@ -12,6 +13,14 @@ public class ValidacaoStatusDTO {
         this.status = status;
         this.mensagem = mensagem;
     }
+
+    public ValidacaoStatusDTO(String codigoValidacao, Boolean validado, String status, String mensagem,
+                              String codigoDigestFinal) {
+        this(codigoValidacao, validado, status, mensagem);
+        this.codigoDigestFinal = codigoDigestFinal;
+    }
+
+    public String getCodigoDigestFinal() { return codigoDigestFinal; }
 
     public String getCodigoValidacao() { return codigoValidacao; }
     public void setCodigoValidacao(String codigoValidacao) { this.codigoValidacao = codigoValidacao; }

@@ -4,6 +4,13 @@ Sistema backend em **Quarkus** que gera códigos opacos de validação para QR C
 O código entregue ao cliente é um segredo aleatório de 128 bits, gerado com `SecureRandom`.
 O banco armazena somente o digest SHA-256 e nunca o código original ou dados pessoais.
 
+Após uma validação bem-sucedida, `PUT /validacao/validar-hash` retorna também
+`codigoDigestFinal`: os 10 últimos caracteres de `CODIGO_DIGEST` do registro validado.
+`GET /validacao/historico` inclui o mesmo campo em cada uma das 10 últimas validações,
+ordenadas pela data de validação, da mais recente para a mais antiga. O digest é
+hexadecimal, então esse identificador pode conter números e letras de `a` a `f`,
+incluindo zeros à esquerda. O digest completo não é retornado.
+
 ## 🚀 Início Rápido
 
 ### Opção 1: Com Docker Compose (Recomendado)
