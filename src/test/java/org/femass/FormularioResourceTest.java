@@ -10,12 +10,17 @@ import org.femass.service.VerificacaoEmailService;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 class FormularioResourceTest {
@@ -55,7 +60,7 @@ class FormularioResourceTest {
     }
 
     @Test
-    void deveSalvarFormularioDisciplinarVersionado() {
+    void deveSalvarFormularioDisciplinarVersionado() throws Exception {
         String formulario = """
                 {
                   "campaign":"cpa-2026", "form":"discente_disciplinas", "formVersion":1,
@@ -65,8 +70,19 @@ class FormularioResourceTest {
                 }
                 """.formatted(nomeCurso, disciplinaId);
 
-        given().contentType("application/json").body(formulario)
-                .when().post("/formulario").then().statusCode(200).body("codigoValidacao", notNullValue());
+        Map<String, String> comprovante = given().contentType("application/json").body(formulario)
+                .when().post("/formulario").then().statusCode(200).body("codigoValidacao", notNullValue())
+                .extract().as(Map.class);
+        String codigo = comprovante.get("codigoValidacao");
+        String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        String identificador = digest.substring(digest.length() - 10);
+        assertEquals(codigo, comprovante.get("qrCode"));
+        assertEquals(identificador, comprovante.get("codigoDigestFinal"));
+        assertFalse(comprovante.containsKey("codigoDigest"));
+        given().queryParam("codigoValidacao", codigo)
+                .when().put("/validacao/validar-hash").then().statusCode(200)
+                .body("codigoDigestFinal", org.hamcrest.Matchers.is(identificador));
     }
 
     @Test

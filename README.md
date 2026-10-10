@@ -10,6 +10,8 @@ Após uma validação bem-sucedida, `PUT /validacao/validar-hash` retorna també
 ordenadas pela data de validação, da mais recente para a mais antiga. O digest é
 hexadecimal, então esse identificador pode conter números e letras de `a` a `f`,
 incluindo zeros à esquerda. O digest completo não é retornado.
+`POST /formulario` também retorna `codigoDigestFinal` junto de `qrCode` e
+`codigoValidacao`, permitindo ao frontend exibir o mesmo identificador no comprovante.
 
 ## 🚀 Início Rápido
 
