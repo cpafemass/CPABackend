@@ -91,7 +91,8 @@ try {
         $requestParts = $requestLine -split ' '
         if ($requestParts.Count -lt 2) { throw 'Invalid callback request.' }
 
-        $callbackUri = [Uri]::new("http://127.0.0.1$requestParts[1]")
+                $callbackUri = [Uri]::new("http://127.0.0.1$($requestParts[1])")
+
         $parameters = ConvertFrom-QueryString $callbackUri.Query
         if ($parameters['state'] -ne $state) {
             throw 'Invalid OAuth state returned by Google. Use the URL from this execution only.'
